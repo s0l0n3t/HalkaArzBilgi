@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:halkaarzbilgi/core/widgets/app_bottom_nav_bar.dart';
-import 'package:halkaarzbilgi/features/splash/splash_screen.dart';
 import 'package:halkaarzbilgi/features/auth/welcome_screen.dart';
 import 'package:halkaarzbilgi/features/auth/register_screen.dart';
 import 'package:halkaarzbilgi/features/auth/login_screen.dart';
@@ -15,11 +14,11 @@ final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: '/',
+  initialLocation: '/welcome',
   routes: [
     GoRoute(
       path: '/',
-      builder: (context, state) => const SplashScreen(),
+      builder: (context, state) => const WelcomeScreen(),
     ),
     GoRoute(
       path: '/welcome',

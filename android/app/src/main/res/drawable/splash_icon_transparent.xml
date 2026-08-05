@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Completely transparent drawable — used to suppress Android 12 splash icon -->
+<color xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#00000000" />

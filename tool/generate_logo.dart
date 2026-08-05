@@ -5,10 +5,10 @@ void main() {
   const int size = 1024;
 
   final transparent = img.ColorRgba8(0, 0, 0, 0);
-  final greenColor = img.ColorRgba8(0, 184, 86, 255);  // #00B856
-  final darkBgColor = img.ColorRgba8(17, 17, 17, 255);  // #111111
+  final greenBgColor = img.ColorRgba8(0, 184, 86, 255); // #00B856 Green
+  final darkBarColor = img.ColorRgba8(17, 17, 17, 255);  // #111111 Black
 
-  // 1. Full App Icon (1024x1024): Dark #111111 circle background with the 3 green #00B856 bars mark centered
+  // 1. Full App Icon: Green #00B856 circle background with 3 black #111111 bars inside
   final icon = img.Image(width: size, height: size);
   img.fill(icon, color: transparent);
 
@@ -21,40 +21,35 @@ void main() {
       final dx = x - cx + 0.5;
       final dy = y - cy + 0.5;
       if (dx * dx + dy * dy <= r * r) {
-        icon.setPixel(x, y, darkBgColor);
+        icon.setPixel(x, y, greenBgColor);
       }
     }
   }
 
-  // Draw the 3 green bars mark from logo.png centered
-  // Scale factor = 1024 / 48 = 21.333
+  // Draw 3 black bars (#111111) inside green circle
   const double f = size / 48.0;
-  // Offset to center the 3 bars vertically and horizontally in 1024x1024
-  const double ox = 40.0;
-  const double oy = 30.0;
-
-  _drawRRect(icon, ox + 27 * f, oy + 5 * f, 8 * f, 17 * f, 3 * f, greenColor);
-  _drawRRect(icon, ox + 22 * f, oy + 24 * f, 8 * f, 6 * f, 3 * f, greenColor);
-  _drawRRect(icon, ox + 13 * f, oy + 28 * f, 8 * f, 15 * f, 3 * f, greenColor);
+  _drawRRect(icon, 27 * f, 5 * f, 8 * f, 17 * f, 3 * f, darkBarColor);
+  _drawRRect(icon, 22 * f, 24 * f, 8 * f, 6 * f, 3 * f, darkBarColor);
+  _drawRRect(icon, 13 * f, 28 * f, 8 * f, 15 * f, 3 * f, darkBarColor);
 
   _savePng(icon, 'assets/images/app_logo.png');
 
-  // 2. Adaptive Icon Foreground (3 green bars on transparent canvas)
+  // 2. Adaptive Icon Foreground (3 black bars on transparent canvas for green adaptive background)
   final fg = img.Image(width: size, height: size);
   img.fill(fg, color: transparent);
 
-  const double safeSize = size * 0.60;
-  final double aox = (size - safeSize) / 2.0 + 20;
-  final double aoy = (size - safeSize) / 2.0 + 15;
+  const double safeSize = size * 0.64;
+  final double ox = (size - safeSize) / 2.0;
+  final double oy = (size - safeSize) / 2.0;
   final double sf = safeSize / 48.0;
 
-  _drawRRect(fg, aox + 27 * sf, aoy + 5 * sf, 8 * sf, 17 * sf, 3 * sf, greenColor);
-  _drawRRect(fg, aox + 22 * sf, aoy + 24 * sf, 8 * sf, 6 * sf, 3 * sf, greenColor);
-  _drawRRect(fg, aox + 13 * sf, aoy + 28 * sf, 8 * sf, 15 * sf, 3 * sf, greenColor);
+  _drawRRect(fg, ox + 27 * sf, oy + 5 * sf, 8 * sf, 17 * sf, 3 * sf, darkBarColor);
+  _drawRRect(fg, ox + 22 * sf, oy + 24 * sf, 8 * sf, 6 * sf, 3 * sf, darkBarColor);
+  _drawRRect(fg, ox + 13 * sf, oy + 28 * sf, 8 * sf, 15 * sf, 3 * sf, darkBarColor);
 
   _savePng(fg, 'assets/images/app_logo_foreground.png');
 
-  print('✅ Launcher icon PNGs generated successfully.');
+  print('✅ Generated launcher icons: Green #00B856 background + Black #111111 bars foreground');
 }
 
 void _drawRRect(img.Image image, double rx, double ry, double rw, double rh, double radius, img.Color color) {
