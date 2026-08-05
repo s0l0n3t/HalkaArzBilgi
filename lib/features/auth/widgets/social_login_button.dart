@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 enum SocialIconType { google, apple, mail }
@@ -18,27 +19,19 @@ class SocialLoginButton extends StatelessWidget {
   Widget _buildIcon() {
     switch (iconType) {
       case SocialIconType.google:
-        return Container(
-          width: 24,
-          height: 24,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-          ),
-          child: const Center(
-            child: Text(
-              'G',
-              style: TextStyle(
-                color: Colors.blue,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
+        return SvgPicture.asset(
+          'assets/google-icon.svg',
+          width: 22,
+          height: 22,
         );
       case SocialIconType.apple:
-        return const Icon(Icons.apple, color: Colors.white, size: 28);
+        return SvgPicture.asset(
+          'assets/apple-icon.svg',
+          width: 22,
+          height: 22,
+        );
       case SocialIconType.mail:
-        return const Icon(Icons.mail_outline, color: Colors.white, size: 24);
+        return const Icon(Icons.mail_outline, color: Colors.white, size: 22);
     }
   }
 
@@ -46,31 +39,30 @@ class SocialLoginButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 58,
+      height: 56,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF333333),
+          backgroundColor: const Color(0xFF2C2C2E),
+          elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
         ),
         onPressed: onTap,
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _buildIcon(),
-            Expanded(
-              child: Text(
-                text,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+            const SizedBox(width: 10),
+            Text(
+              text,
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(width: 24), // balance icon width
           ],
         ),
       ),

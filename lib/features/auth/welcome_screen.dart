@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/features/auth/widgets/app_logo.dart';
+import 'package:halkaarzbilgi/features/auth/widgets/social_login_button.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -14,52 +15,48 @@ class WelcomeScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Spacer(flex: 1),
-              // Center-top area
+              // Top area: Logo & Subtitle
               Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const AppLogo(width: 220),
-                  const SizedBox(height: 16),
+                  const AppLogo(width: 250),
+                  const SizedBox(height: 24),
                   Text(
                     'Yeni halka arzları keşfedin',
+                    textAlign: TextAlign.center,
                     style: GoogleFonts.inter(
-                      color: const Color(0xFF888888),
-                      fontSize: 16,
+                      color: const Color(0xFF999999),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ],
               ),
               const Spacer(flex: 2),
-              // Bottom section
+
+              // Bottom section: Actions matching the reference design
               Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'Bildirim alabilmek için giriş yapın.',
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFF888888),
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Divider(color: Color(0xFF333333)),
-                  const SizedBox(height: 24),
+                  // Mail login button
                   SizedBox(
                     width: double.infinity,
-                    height: 58,
+                    height: 56,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF333333),
+                        backgroundColor: const Color(0xFF2C2C2E),
+                        elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       onPressed: () {
-                        context.push('/register');
+                        context.push('/login');
                       },
                       child: Text(
-                        'Giriş Yap',
+                        'Mail ile giriş yap',
                         style: GoogleFonts.inter(
                           color: Colors.white,
                           fontSize: 16,
@@ -68,17 +65,73 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: () {
+
+                  const SizedBox(height: 24),
+
+                  // Divider with "Veya"
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Divider(color: Color(0xFF333333), thickness: 1),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text(
+                          'Veya',
+                          style: GoogleFonts.inter(
+                            color: const Color(0xFF777777),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      const Expanded(
+                        child: Divider(color: Color(0xFF333333), thickness: 1),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Apple Login button
+                  SocialLoginButton(
+                    text: 'Apple ile giriş yap',
+                    iconType: SocialIconType.apple,
+                    onTap: () {
+                      // Apple Sign-in handler
+                    },
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // Google Login button
+                  SocialLoginButton(
+                    text: 'Google ile giriş yap',
+                    iconType: SocialIconType.google,
+                    onTap: () {
+                      // Google Sign-in handler
+                    },
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Skip login text link
+                  InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () {
                       context.go('/home');
                     },
-                    child: Text(
-                      'Giriş yapmadan devam et',
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFF888888),
-                        fontSize: 14,
-                        decoration: TextDecoration.underline,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 8.0,
+                      ),
+                      child: Text(
+                        'Giriş yapmadan devam et',
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF8E8E93),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
                     ),
                   ),
