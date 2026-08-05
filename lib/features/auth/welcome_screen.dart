@@ -20,16 +20,7 @@ class WelcomeScreen extends StatelessWidget {
               // Center-top area
               Column(
                 children: [
-                  const AppLogo(size: 80),
-                  const SizedBox(height: 24),
-                  Text(
-                    'HalkaArzBilgi',
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  const AppLogo(width: 220),
                   const SizedBox(height: 16),
                   Text(
                     'Yeni halka arzları keşfedin',

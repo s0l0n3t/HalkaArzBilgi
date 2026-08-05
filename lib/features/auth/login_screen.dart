@@ -25,16 +25,7 @@ class LoginScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const AppLogo(size: 48),
-              const SizedBox(height: 16),
-              Text(
-                'HalkaArzBilgi',
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              const AppLogo(width: 180),
               const SizedBox(height: 48),
               
               const AuthTextField(

@@ -27,17 +27,8 @@ class RegisterScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Logo Header
-              const AppLogo(size: 48),
-              const SizedBox(height: 16),
-              Text(
-                'HalkaArzBilgi',
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              // Logo Header using logo.png
+              const AppLogo(width: 180),
               const SizedBox(height: 32),
               
               // Text Fields
