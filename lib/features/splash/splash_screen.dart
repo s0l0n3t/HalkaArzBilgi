@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:halkaarzbilgi/features/auth/widgets/app_logo.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -25,21 +24,10 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const AppLogo(),
-            const SizedBox(height: 16),
-            Text(
-              'HalkaArzBilgi',
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
+      body: SizedBox.expand(
+        child: SvgPicture.asset(
+          'assets/splash-screen.svg',
+          fit: BoxFit.cover,
         ),
       ),
     );
