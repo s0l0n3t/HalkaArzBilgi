@@ -33,8 +33,10 @@ flutter:
 
 flutter_native_splash:
   color: "#111111"
+  image: "assets/icons/splash_screen_logo.png" # Merkezdeki logon
   android_12:
     color: "#111111"
+    image: "assets/icons/splash_screen_logo.png" # Merkezdeki logon
 
 flutter_launcher_icons:
   android: "ic_launcher"
