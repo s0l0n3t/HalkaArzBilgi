@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:halkaarzbilgi/core/providers/auth_provider.dart';
 import 'package:halkaarzbilgi/features/auth/widgets/app_logo.dart';
 import 'package:halkaarzbilgi/features/auth/widgets/social_login_button.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends ConsumerWidget {
   const WelcomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
       body: SafeArea(
@@ -118,6 +120,7 @@ class WelcomeScreen extends StatelessWidget {
                   InkWell(
                     borderRadius: BorderRadius.circular(8),
                     onTap: () {
+                      ref.read(authProvider.notifier).setGuest();
                       context.go('/home');
                     },
                     child: Padding(

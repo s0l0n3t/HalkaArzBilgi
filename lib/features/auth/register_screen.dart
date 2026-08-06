@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:halkaarzbilgi/core/providers/auth_provider.dart';
 import 'package:halkaarzbilgi/features/auth/widgets/app_logo.dart';
 import 'package:halkaarzbilgi/features/auth/widgets/auth_text_field.dart';
 import 'package:halkaarzbilgi/features/auth/widgets/kvkk_checkbox.dart';
 
-class RegisterScreen extends StatelessWidget {
+class RegisterScreen extends ConsumerWidget {
   const RegisterScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
       appBar: AppBar(
@@ -82,6 +84,7 @@ class RegisterScreen extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {
+                    ref.read(authProvider.notifier).setAuthenticated();
                     context.go('/home');
                   },
                   child: Text(

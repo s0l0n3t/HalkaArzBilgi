@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:halkaarzbilgi/core/providers/auth_provider.dart';
 import 'package:halkaarzbilgi/features/auth/widgets/app_logo.dart';
 import 'package:halkaarzbilgi/features/auth/widgets/auth_text_field.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
       appBar: AppBar(
@@ -52,6 +54,7 @@ class LoginScreen extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {
+                    ref.read(authProvider.notifier).setAuthenticated();
                     context.go('/home');
                   },
                   child: Text(
