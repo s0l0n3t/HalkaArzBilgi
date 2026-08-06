@@ -64,6 +64,35 @@ class LoginScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 24),
+              GestureDetector(
+                onTap: () {
+                  context.push('/register');
+                },
+                child: RichText(
+                  text: TextSpan(
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: 'Hesabınız yok mu? ',
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF8E8E93),
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      TextSpan(
+                        text: 'Üye Ol',
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF00B856),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),

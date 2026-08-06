@@ -1,8 +1,12 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:halkaarzbilgi/core/constants/legal_texts.dart';
 
 class KvkkCheckbox extends StatefulWidget {
-  const KvkkCheckbox({super.key});
+  final ValueChanged<bool>? onChanged;
+
+  const KvkkCheckbox({super.key, this.onChanged});
 
   @override
   State<KvkkCheckbox> createState() => _KvkkCheckboxState();
@@ -10,6 +14,36 @@ class KvkkCheckbox extends StatefulWidget {
 
 class _KvkkCheckboxState extends State<KvkkCheckbox> {
   bool _isChecked = false;
+  late final TapGestureRecognizer _kvkkRecognizer;
+  late final TapGestureRecognizer _termsRecognizer;
+
+  @override
+  void initState() {
+    super.initState();
+    _kvkkRecognizer = TapGestureRecognizer()
+      ..onTap = () {
+        LegalTexts.showLegalBottomSheet(
+          context,
+          title: LegalTexts.kvkkTitle,
+          content: LegalTexts.kvkkText,
+        );
+      };
+    _termsRecognizer = TapGestureRecognizer()
+      ..onTap = () {
+        LegalTexts.showLegalBottomSheet(
+          context,
+          title: LegalTexts.termsTitle,
+          content: LegalTexts.termsText,
+        );
+      };
+  }
+
+  @override
+  void dispose() {
+    _kvkkRecognizer.dispose();
+    _termsRecognizer.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +59,7 @@ class _KvkkCheckboxState extends State<KvkkCheckbox> {
               setState(() {
                 _isChecked = value ?? false;
               });
+              widget.onChanged?.call(_isChecked);
             },
             activeColor: const Color(0xFF00B856),
             checkColor: Colors.white,
@@ -46,17 +81,21 @@ class _KvkkCheckboxState extends State<KvkkCheckbox> {
               children: [
                 TextSpan(
                   text: 'KVKK',
+                  recognizer: _kvkkRecognizer,
                   style: GoogleFonts.inter(
                     color: const Color(0xFF00B856),
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.underline,
                   ),
                 ),
                 const TextSpan(text: ' ve '),
                 TextSpan(
                   text: 'Kullanım Koşulları',
+                  recognizer: _termsRecognizer,
                   style: GoogleFonts.inter(
                     color: const Color(0xFF00B856),
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.underline,
                   ),
                 ),
                 const TextSpan(text: ' belgelerini okudum ve kabul ediyorum.'),

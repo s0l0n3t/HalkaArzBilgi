@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/features/auth/widgets/app_logo.dart';
 import 'package:halkaarzbilgi/features/auth/widgets/auth_text_field.dart';
-import 'package:halkaarzbilgi/features/auth/widgets/social_login_button.dart';
 import 'package:halkaarzbilgi/features/auth/widgets/kvkk_checkbox.dart';
 
 class RegisterScreen extends StatelessWidget {
@@ -72,27 +71,6 @@ class RegisterScreen extends StatelessWidget {
               const KvkkCheckbox(),
               const SizedBox(height: 32),
               
-              SocialLoginButton(
-                text: 'Google ile giriş yap',
-                iconType: SocialIconType.google,
-                onTap: () {},
-              ),
-              const SizedBox(height: 16),
-              SocialLoginButton(
-                text: 'Apple ile giriş yap',
-                iconType: SocialIconType.apple,
-                onTap: () {},
-              ),
-              const SizedBox(height: 16),
-              SocialLoginButton(
-                text: 'Mail ile giriş yap',
-                iconType: SocialIconType.mail,
-                onTap: () {
-                  context.push('/login');
-                },
-              ),
-              
-              const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
                 height: 58,
@@ -113,6 +91,35 @@ class RegisterScreen extends StatelessWidget {
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              GestureDetector(
+                onTap: () {
+                  context.push('/login');
+                },
+                child: RichText(
+                  text: TextSpan(
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: 'Zaten hesabınız var mı? ',
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF8E8E93),
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      TextSpan(
+                        text: 'Giriş Yap',
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF00B856),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
