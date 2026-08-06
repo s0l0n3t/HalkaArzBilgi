@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:halkaarzbilgi/core/widgets/app_bottom_nav_bar.dart';
 import 'package:halkaarzbilgi/features/auth/welcome_screen.dart';
 import 'package:halkaarzbilgi/features/auth/register_screen.dart';
+import 'package:halkaarzbilgi/features/auth/forgot_password_screen.dart';
 import 'package:halkaarzbilgi/features/auth/login_screen.dart';
 import 'package:halkaarzbilgi/features/home/home_screen.dart';
 import 'package:halkaarzbilgi/features/news/news_screen.dart';
@@ -31,6 +32,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/login',
       builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: '/forgot-password',
+      builder: (context, state) => const ForgotPasswordScreen(),
     ),
     GoRoute(
       path: '/stock/:id',

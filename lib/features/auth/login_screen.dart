@@ -63,7 +63,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             children: [
               const AppLogo(width: 180),
               const SizedBox(height: 48),
-              
+
               AuthTextField(
                 label: 'E-mail adresi',
                 hint: 'E-mail adresiniz',
@@ -77,8 +77,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 obscureText: true,
                 controller: _passwordController,
               ),
-              const SizedBox(height: 32),
-              
+              const SizedBox(height: 10),
+
+              // Parolanızı mı unuttunuz? - sağa hizalı
+              Align(
+                alignment: Alignment.centerRight,
+                child: GestureDetector(
+                  onTap: () => context.push('/forgot-password'),
+                  child: Text(
+                    'Parolanızı mı unuttunuz?',
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFF8E8E93),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
               SizedBox(
                 width: double.infinity,
                 height: 58,
@@ -101,15 +118,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+
               GestureDetector(
                 onTap: () {
                   context.push('/register');
                 },
                 child: RichText(
                   text: TextSpan(
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                    ),
+                    style: GoogleFonts.inter(fontSize: 14),
                     children: [
                       TextSpan(
                         text: 'Hesabınız yok mu? ',
