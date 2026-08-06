@@ -51,13 +51,13 @@ class AllIposListItem extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
-                  // Şirket Adı: 10pt
+                  // Şirket Adı: 12pt
                   Text(
                     ipo.companyName,
                     style: GoogleFonts.inter(
                       color: const Color(0xFF8E8E93),
                       fontWeight: FontWeight.w400,
-                      fontSize: 10,
+                      fontSize: 12,
                       height: 1.2,
                     ),
                     maxLines: 1,
