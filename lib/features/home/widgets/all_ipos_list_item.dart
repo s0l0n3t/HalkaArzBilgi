@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/features/home/models/ipo_model.dart';
 import 'package:halkaarzbilgi/core/widgets/percentage_badge.dart';
 
@@ -17,61 +17,79 @@ class AllIposListItem extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Logo placeholder
+            // Logo box (green outline)
             Container(
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFF00B856)),
-                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF00B856), width: 1.5),
+                borderRadius: BorderRadius.circular(4),
               ),
               child: const Center(
-                child: Icon(Icons.close, color: Color(0xFF00B856)),
+                child: Icon(Icons.close, color: Color(0xFF00B856), size: 24),
               ),
             ),
             const SizedBox(width: 12),
-            // Company info
+            // Company & Date info (Responsive flex column)
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Hisse Kodu: 16pt SemiBold
                   Text(
                     ipo.symbol,
-                    style: const TextStyle(
+                    style: GoogleFonts.inter(
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       fontSize: 16,
+                      height: 1.2,
                     ),
-                  ),
-                  Text(
-                    ipo.companyName,
-                    style: const TextStyle(
-                      color: Color(0xFF888888),
-                      fontSize: 14,
-                    ),
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 2),
+                  // Şirket Adı: 10pt
+                  Text(
+                    ipo.companyName,
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFF8E8E93),
+                      fontWeight: FontWeight.w400,
+                      fontSize: 10,
+                      height: 1.2,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  // Halka Arz Tarihi: 14pt
                   Text(
                     ipo.ipoDate,
-                    style: const TextStyle(
-                      color: Color(0xFF888888),
-                      fontSize: 12,
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFF8E8E93),
+                      fontWeight: FontWeight.w400,
+                      fontSize: 14,
+                      height: 1.2,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            // Price & badge
+            // Price & Badge
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   '${ipo.price.toStringAsFixed(2).replaceAll('.', ',')} TL',
-                  style: const TextStyle(
+                  style: GoogleFonts.inter(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                     fontSize: 16,
                   ),
                 ),

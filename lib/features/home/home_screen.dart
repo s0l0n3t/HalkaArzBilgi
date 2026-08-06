@@ -12,7 +12,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
-    final isLoggedIn = authState == AuthState.authenticated;
+    final isLoggedIn = authState.status == AuthStatus.authenticated;
 
     return Scaffold(
       backgroundColor: const Color(0xFF111111),

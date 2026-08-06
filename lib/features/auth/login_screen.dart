@@ -6,11 +6,45 @@ import 'package:halkaarzbilgi/core/providers/auth_provider.dart';
 import 'package:halkaarzbilgi/features/auth/widgets/app_logo.dart';
 import 'package:halkaarzbilgi/features/auth/widgets/auth_text_field.dart';
 
-class LoginScreen extends ConsumerWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  late final TextEditingController _emailController;
+  late final TextEditingController _passwordController;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController();
+    _passwordController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _handleLogin() {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email == '1' && password == '1') {
+      ref.read(authProvider.notifier).setAuthenticated(userName: 'Furkan TOKGÖZ');
+    } else {
+      ref.read(authProvider.notifier).setAuthenticated(userName: 'Hesap Adı');
+    }
+    context.go('/home');
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
       appBar: AppBar(
@@ -30,16 +64,18 @@ class LoginScreen extends ConsumerWidget {
               const AppLogo(width: 180),
               const SizedBox(height: 48),
               
-              const AuthTextField(
+              AuthTextField(
                 label: 'E-mail adresi',
                 hint: 'E-mail adresiniz',
                 keyboardType: TextInputType.emailAddress,
+                controller: _emailController,
               ),
               const SizedBox(height: 16),
-              const AuthTextField(
+              AuthTextField(
                 label: 'Parola',
                 hint: 'Parolanız',
                 obscureText: true,
+                controller: _passwordController,
               ),
               const SizedBox(height: 32),
               
@@ -53,10 +89,7 @@ class LoginScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  onPressed: () {
-                    ref.read(authProvider.notifier).setAuthenticated();
-                    context.go('/home');
-                  },
+                  onPressed: _handleLogin,
                   child: Text(
                     'Giriş Yap',
                     style: GoogleFonts.inter(

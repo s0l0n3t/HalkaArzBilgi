@@ -43,14 +43,6 @@ class AllIposSection extends StatelessWidget {
                   ],
                 );
               }),
-              const SizedBox(height: 12),
-              const Text(
-                'Diğer halka arzlar için tıklayınız.',
-                style: TextStyle(
-                  color: Color(0xFF888888),
-                  fontSize: 12,
-                ),
-              ),
             ],
           ),
         ),
