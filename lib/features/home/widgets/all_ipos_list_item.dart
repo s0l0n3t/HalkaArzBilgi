@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/features/home/models/ipo_model.dart';
 import 'package:halkaarzbilgi/core/widgets/percentage_badge.dart';
@@ -12,7 +13,7 @@ class AllIposListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-        // Navigate to stock detail
+        context.push('/ipo/${ipo.symbol}');
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),

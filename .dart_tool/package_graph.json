@@ -8,6 +8,7 @@
       "version": "1.0.0+1",
       "dependencies": [
         "cupertino_icons",
+        "fl_chart",
         "flutter",
         "flutter_riverpod",
         "flutter_svg",
@@ -82,6 +83,15 @@
         "stack_trace",
         "stream_channel",
         "test_api",
+        "vector_math"
+      ]
+    },
+    {
+      "name": "fl_chart",
+      "version": "1.2.0",
+      "dependencies": [
+        "equatable",
+        "flutter",
         "vector_math"
       ]
     },
@@ -687,6 +697,14 @@
         "collection",
         "meta",
         "pub_semver"
+      ]
+    },
+    {
+      "name": "equatable",
+      "version": "2.1.0",
+      "dependencies": [
+        "collection",
+        "meta"
       ]
     }
   ],

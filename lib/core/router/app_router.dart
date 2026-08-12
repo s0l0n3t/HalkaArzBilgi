@@ -10,6 +10,7 @@ import 'package:halkaarzbilgi/features/news/news_screen.dart';
 import 'package:halkaarzbilgi/features/notifications/notification_settings_screen.dart';
 import 'package:halkaarzbilgi/features/search/search_screen.dart';
 import 'package:halkaarzbilgi/features/stock_detail/stock_detail_screen.dart';
+import 'package:halkaarzbilgi/features/ipo_detail/ipo_detail_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -42,6 +43,13 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         final id = state.pathParameters['id']!;
         return StockDetailScreen(id: id);
+      },
+    ),
+    GoRoute(
+      path: '/ipo/:symbol',
+      builder: (context, state) {
+        final symbol = state.pathParameters['symbol']!;
+        return IpoDetailScreen(symbol: symbol);
       },
     ),
     StatefulShellRoute.indexedStack(
