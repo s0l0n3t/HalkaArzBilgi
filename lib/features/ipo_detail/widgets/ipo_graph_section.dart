@@ -4,6 +4,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/features/home/models/ipo_model.dart';
 import 'package:halkaarzbilgi/core/widgets/percentage_badge.dart';
+import 'package:halkaarzbilgi/features/ipo_detail/models/chart_data_model.dart';
+import 'package:halkaarzbilgi/features/ipo_detail/services/chart_data_service.dart';
 
 class IpoGraphSection extends StatefulWidget {
   final IpoModel ipo;
@@ -25,78 +27,52 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
     'Hepsi'
   ];
 
-  // Farklı zaman periyotları için mock veri noktaları
-  final Map<int, List<FlSpot>> _periodData = {
-    0: const [
-      FlSpot(0, 110),
-      FlSpot(1, 140),
-      FlSpot(2, 90),
-      FlSpot(3, 105),
-      FlSpot(4, 80),
-      FlSpot(5, 120),
-      FlSpot(6, 150),
-      FlSpot(7, 130),
-      FlSpot(8, 138),
-    ],
-    1: const [
-      FlSpot(0, 85),
-      FlSpot(1, 95),
-      FlSpot(2, 120),
-      FlSpot(3, 110),
-      FlSpot(4, 140),
-      FlSpot(5, 135),
-      FlSpot(6, 148),
-    ],
-    2: const [
-      FlSpot(0, 70),
-      FlSpot(1, 88),
-      FlSpot(2, 102),
-      FlSpot(3, 95),
-      FlSpot(4, 125),
-      FlSpot(5, 142),
-      FlSpot(6, 138),
-    ],
-    3: const [
-      FlSpot(0, 65),
-      FlSpot(1, 80),
-      FlSpot(2, 100),
-      FlSpot(3, 130),
-      FlSpot(4, 115),
-      FlSpot(5, 145),
-      FlSpot(6, 150),
-    ],
-    4: const [
-      FlSpot(0, 50),
-      FlSpot(1, 75),
-      FlSpot(2, 90),
-      FlSpot(3, 110),
-      FlSpot(4, 130),
-      FlSpot(5, 120),
-      FlSpot(6, 152),
-    ],
-    5: const [
-      FlSpot(0, 40),
-      FlSpot(1, 60),
-      FlSpot(2, 85),
-      FlSpot(3, 115),
-      FlSpot(4, 135),
-      FlSpot(5, 145),
-      FlSpot(6, 155),
-    ],
-  };
+  static const List<ChartPeriod> _chartPeriods = [
+    ChartPeriod.day,
+    ChartPeriod.week,
+    ChartPeriod.month,
+    ChartPeriod.threeMonths,
+    ChartPeriod.year,
+    ChartPeriod.all,
+  ];
+
+  final MockChartDataService _chartService = MockChartDataService();
+
+  // Periyot bazlı cache — her periyot için veriyi bir kez üretir
+  final Map<int, ChartData> _chartDataCache = {};
+
+  ChartData _getChartData() {
+    if (!_chartDataCache.containsKey(_selectedPeriod)) {
+      _chartDataCache[_selectedPeriod] = _chartService.getChartData(
+        symbol: widget.ipo.symbol,
+        period: _chartPeriods[_selectedPeriod],
+        basePrice: widget.ipo.price,
+      );
+    }
+    return _chartDataCache[_selectedPeriod]!;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final spots = _periodData[_selectedPeriod] ?? _periodData[0]!;
+    final chartData = _getChartData();
+    final spots = chartData.spots;
+    final bool isGain = chartData.isGain;
 
-    // Dinamik fiyat hesaplaması: son nokta = son fiyat, ilk nokta = başlangıç fiyatı
-    final double lastPrice = spots.last.y;
-    final double firstPrice = spots.first.y;
-    final double changeTL = lastPrice - firstPrice;
-    final double changePercent = firstPrice != 0
-        ? ((lastPrice - firstPrice) / firstPrice) * 100
-        : 0.0;
-    final bool isGain = changeTL >= 0;
+    // Renk: açılış fiyatına göre yeşil veya kırmızı
+    final Color chartColor =
+        isGain ? const Color(0xFF00B856) : const Color(0xFFFF3B30);
+
+    // Y ekseni dinamik aralık (padding ile)
+    final double priceRange = chartData.maxPrice - chartData.minPrice;
+    final double yPadding = priceRange * 0.15;
+    final double minY = chartData.minPrice - yPadding;
+    final double maxY = chartData.maxPrice + yPadding;
+
+    // Sağ eksen için fiyat seviyeleri hesapla (3 seviye)
+    final double yStep = priceRange / 3;
+    final double level1 = chartData.minPrice + yStep * 0.5;
+    final double level2 = chartData.minPrice + yStep * 1.5;
+    final double level3 = chartData.minPrice + yStep * 2.5;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,7 +83,7 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
           textBaseline: TextBaseline.alphabetic,
           children: [
             Text(
-              '${lastPrice.toStringAsFixed(2).replaceAll('.', ',')} TL',
+              '${chartData.lastPrice.toStringAsFixed(2).replaceAll('.', ',')} TL',
               style: GoogleFonts.inter(
                 color: Colors.white,
                 fontSize: 20,
@@ -116,24 +92,22 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
             ),
             const SizedBox(width: 10),
             Text(
-              '${isGain ? '+' : ''}${changeTL.toStringAsFixed(2).replaceAll('.', ',')} TL',
+              '${isGain ? '+' : ''}${chartData.changeTL.toStringAsFixed(2).replaceAll('.', ',')} TL',
               style: GoogleFonts.inter(
-                color: isGain
-                    ? const Color(0xFF00B856)
-                    : const Color(0xFFFF3B30),
+                color: chartColor,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(width: 8),
             PercentageBadge(
-              percent: changePercent,
+              percent: chartData.changePercent,
               isGain: isGain,
             ),
           ],
         ),
         const SizedBox(height: 12),
-        // Dinamik Yeşil Çizgi Grafik
+        // Dinamik Grafik
         Container(
           height: 180,
           padding: const EdgeInsets.only(top: 16, right: 8),
@@ -147,10 +121,11 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
                 show: true,
                 drawVerticalLine: false,
                 drawHorizontalLine: true,
-                horizontalInterval: 30,
+                horizontalInterval: 1,
                 getDrawingHorizontalLine: (value) {
-                  // Ortadaki referans çizgisini kesikli çiz
-                  if (value == 100) {
+                  // Açılış fiyatı referans çizgisi (kesikli)
+                  final diff = (value - chartData.openPrice).abs();
+                  if (diff < yStep * 0.05) {
                     return const FlLine(
                       color: Color(0xFF555555),
                       strokeWidth: 1,
@@ -171,21 +146,62 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
                 topTitles: const AxisTitles(
                   sideTitles: SideTitles(showTitles: false),
                 ),
-                bottomTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
+                // Yahoo Finance tarzı: altta saat/tarih etiketleri
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 22,
+                    interval: 1,
+                    getTitlesWidget: (value, meta) {
+                      final index = value.toInt();
+                      final label = _chartService.getBottomTitle(
+                        _chartPeriods[_selectedPeriod],
+                        index,
+                        chartData.dataPoints,
+                      );
+                      if (label != null) {
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 6.0),
+                          child: Text(
+                            label,
+                            style: GoogleFonts.inter(
+                              color: const Color(0xFF666666),
+                              fontSize: 10,
+                            ),
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
                 ),
-                // Sağ tarafta fiyat seviyeleri: 70, 130, 150
+                // Sağ tarafta dinamik fiyat seviyeleri
                 rightTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    reservedSize: 32,
+                    reservedSize: 42,
                     interval: 1,
                     getTitlesWidget: (value, meta) {
-                      if (value == 150 || value == 130 || value == 70) {
+                      // 3 dinamik fiyat seviyesi göster
+                      final diff1 = (value - level1).abs();
+                      final diff2 = (value - level2).abs();
+                      final diff3 = (value - level3).abs();
+                      final threshold = yStep * 0.08;
+
+                      String? label;
+                      if (diff1 < threshold) {
+                        label = level1.toStringAsFixed(1);
+                      } else if (diff2 < threshold) {
+                        label = level2.toStringAsFixed(1);
+                      } else if (diff3 < threshold) {
+                        label = level3.toStringAsFixed(1);
+                      }
+
+                      if (label != null) {
                         return Padding(
                           padding: const EdgeInsets.only(left: 6.0),
                           child: Text(
-                            '${value.toInt()}',
+                            label,
                             style: GoogleFonts.inter(
                               color: const Color(0xFF666666),
                               fontSize: 11,
@@ -201,8 +217,8 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
               borderData: FlBorderData(show: false),
               minX: 0,
               maxX: (spots.length - 1).toDouble(),
-              minY: 40,
-              maxY: 160,
+              minY: minY,
+              maxY: maxY,
               lineTouchData: LineTouchData(
                 enabled: true,
                 touchTooltipData: LineTouchTooltipData(
@@ -212,7 +228,7 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
                       return LineTooltipItem(
                         '${spot.y.toStringAsFixed(2)} TL',
                         GoogleFonts.inter(
-                          color: const Color(0xFF00B856),
+                          color: chartColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
@@ -226,19 +242,19 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
                   spots: spots,
                   isCurved: true,
                   curveSmoothness: 0.35,
-                  color: const Color(0xFF00B856),
+                  color: chartColor,
                   barWidth: 2.5,
                   isStrokeCapRound: true,
                   dotData: FlDotData(
                     show: true,
                     checkToShowDot: (spot, barData) {
-                      // Son veri noktasında yeşil nokta göster
+                      // Son veri noktasında nokta göster
                       return spot.x == barData.spots.last.x;
                     },
                     getDotPainter: (spot, percent, barData, index) {
                       return FlDotCirclePainter(
                         radius: 4,
-                        color: const Color(0xFF00B856),
+                        color: chartColor,
                         strokeWidth: 2,
                         strokeColor: Colors.white,
                       );
@@ -250,8 +266,8 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        const Color(0xFF00B856).withValues(alpha: 0.2),
-                        const Color(0xFF00B856).withValues(alpha: 0.0),
+                        chartColor.withValues(alpha: 0.2),
+                        chartColor.withValues(alpha: 0.0),
                       ],
                     ),
                   ),
