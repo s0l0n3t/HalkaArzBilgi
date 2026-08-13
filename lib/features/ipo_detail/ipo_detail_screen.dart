@@ -49,10 +49,12 @@ class IpoDetailScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Header (Logo + Ad/Sembol + Alert Butonu)
+              //Alert butonu efekti fixle
               IpoHeaderSection(ipo: ipo),
               const SizedBox(height: 20),
 
               // 2. Bilgi Satırları (Kutusuz düz liste)
+              //İçerik düzenlemesi yapılacak.
               IpoBasicInfoSection(ipo: ipo),
               const SizedBox(height: 24),
 
@@ -64,7 +66,8 @@ class IpoDetailScreen extends StatelessWidget {
               const SizedBox(height: 24),
 
               // 4. Grafik & Zaman butonları & Yahoo Finance
-              const IpoGraphSection(),
+              //Grafik için logo ve fiyat bilgilerini buraya ekle
+              IpoGraphSection(ipo: ipo),
               const SizedBox(height: 28),
 
               // 5. Tahsisat Grupları
@@ -75,6 +78,7 @@ class IpoDetailScreen extends StatelessWidget {
               ],
 
               // 6. Halka Arz Sonuçları
+              //İçerikte sorun var
               if (ipo.ipoResults != null && ipo.ipoResults!.isNotEmpty) ...[
                 IpoResultsSection(rows: ipo.ipoResults!),
                 const SizedBox(height: 28),

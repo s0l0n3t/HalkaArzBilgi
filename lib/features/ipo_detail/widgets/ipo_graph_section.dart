@@ -2,9 +2,13 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:halkaarzbilgi/features/home/models/ipo_model.dart';
+import 'package:halkaarzbilgi/core/widgets/percentage_badge.dart';
 
 class IpoGraphSection extends StatefulWidget {
-  const IpoGraphSection({super.key});
+  final IpoModel ipo;
+
+  const IpoGraphSection({super.key, required this.ipo});
 
   @override
   State<IpoGraphSection> createState() => _IpoGraphSectionState();
@@ -85,9 +89,50 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
   Widget build(BuildContext context) {
     final spots = _periodData[_selectedPeriod] ?? _periodData[0]!;
 
+    // Dinamik fiyat hesaplaması: son nokta = son fiyat, ilk nokta = başlangıç fiyatı
+    final double lastPrice = spots.last.y;
+    final double firstPrice = spots.first.y;
+    final double changeTL = lastPrice - firstPrice;
+    final double changePercent = firstPrice != 0
+        ? ((lastPrice - firstPrice) / firstPrice) * 100
+        : 0.0;
+    final bool isGain = changeTL >= 0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Son Fiyat + TL Değişim + Yüzde Badge
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              '${lastPrice.toStringAsFixed(2).replaceAll('.', ',')} TL',
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              '${isGain ? '+' : ''}${changeTL.toStringAsFixed(2).replaceAll('.', ',')} TL',
+              style: GoogleFonts.inter(
+                color: isGain
+                    ? const Color(0xFF00B856)
+                    : const Color(0xFFFF3B30),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 8),
+            PercentageBadge(
+              percent: changePercent,
+              isGain: isGain,
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
         // Dinamik Yeşil Çizgi Grafik
         Container(
           height: 180,
