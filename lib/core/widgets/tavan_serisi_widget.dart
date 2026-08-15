@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Reusable Tavan Serisi widget — pixel-perfect replica of assets/tavan.png.
@@ -164,25 +163,27 @@ class _TavanSerisiWidgetState extends State<TavanSerisiWidget>
                                   ),
                                 ),
                               ),
-                              // Green circle SVG (Ellipse 8.svg — with inner shadow)
+                              // Green circle image (empty-circle.png)
                               Transform.scale(
                                 scale: fillVal,
-                                child: SvgPicture.asset(
-                                  'assets/Ellipse 8.svg',
+                                child: Image.asset(
+                                  'assets/empty-circle.png',
                                   width: 30,
                                   height: 30,
+                                  fit: BoxFit.contain,
                                 ),
                               ),
-                              // Checkmark SVG (Frame.svg)
+                              // Checkmark image (checkmark.png)
                               if (isCompleted)
                                 Transform.scale(
                                   scale: checkVal,
                                   child: Opacity(
                                     opacity: checkVal.clamp(0.0, 1.0),
-                                    child: SvgPicture.asset(
-                                      'assets/Frame.svg',
-                                      width: 16,
-                                      height: 16,
+                                    child: Image.asset(
+                                      'assets/checkmark.png',
+                                      width: 17,
+                                      height: 17,
+                                      fit: BoxFit.contain,
                                     ),
                                   ),
                                 ),
