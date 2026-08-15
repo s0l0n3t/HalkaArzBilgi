@@ -223,15 +223,52 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
                 enabled: true,
                 touchTooltipData: LineTouchTooltipData(
                   getTooltipColor: (_) => const Color(0xFF222224),
+                  tooltipPadding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  fitInsideHorizontally: true,
+                  fitInsideVertically: true,
                   getTooltipItems: (touchedSpots) {
                     return touchedSpots.map((spot) {
+                      final priceStr =
+                          '${spot.y.toStringAsFixed(2).replaceAll('.', ',')} TL';
+
+                      if (chartData.dataPoints.isEmpty) {
+                        return LineTooltipItem(
+                          priceStr,
+                          GoogleFonts.inter(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        );
+                      }
+
+                      final index = spot.x
+                          .toInt()
+                          .clamp(0, chartData.dataPoints.length - 1);
+                      final point = chartData.dataPoints[index];
+                      final timeStr = _formatTooltipDate(
+                        point.time,
+                        _chartPeriods[_selectedPeriod],
+                      );
+
                       return LineTooltipItem(
-                        '${spot.y.toStringAsFixed(2)} TL',
+                        '$priceStr\n',
                         GoogleFonts.inter(
-                          color: chartColor,
+                          color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
+                        children: [
+                          TextSpan(
+                            text: timeStr,
+                            style: GoogleFonts.inter(
+                              color: const Color(0xFF8E8E93),
+                              fontWeight: FontWeight.w400,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
                       );
                     }).toList();
                   },
@@ -332,4 +369,32 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
       ],
     );
   }
+
+  /// Seçilen periyoda uygun olarak tooltip için tarih ve saat metni üretir
+  String _formatTooltipDate(DateTime dt, ChartPeriod period) {
+    const months = [
+      'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz',
+      'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara',
+    ];
+    final day = dt.day;
+    final month = months[dt.month - 1];
+    final year = dt.year;
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final minute = dt.minute.toString().padLeft(2, '0');
+
+    switch (period) {
+      case ChartPeriod.day:
+        return '$day $month $year, $hour:$minute';
+      case ChartPeriod.week:
+        const days = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+        final dayName = days[dt.weekday - 1];
+        return '$day $month $dayName, $hour:$minute';
+      case ChartPeriod.month:
+      case ChartPeriod.threeMonths:
+      case ChartPeriod.year:
+      case ChartPeriod.all:
+        return '$day $month $year';
+    }
+  }
 }
+
