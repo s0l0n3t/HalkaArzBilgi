@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/features/home/models/ipo_model.dart';
 import 'package:halkaarzbilgi/core/widgets/percentage_badge.dart';
+import 'package:halkaarzbilgi/core/widgets/ipo_alert_button.dart';
 
-class AllIposListItem extends StatelessWidget {
+class AllIposListItem extends ConsumerWidget {
   final IpoModel ipo;
 
   const AllIposListItem({super.key, required this.ipo});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return InkWell(
       onTap: () {
         context.push('/ipo/${ipo.symbol}');
@@ -80,7 +82,9 @@ class AllIposListItem extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            // Alert button (hidden for guests, animated for logged-in users)
+            IpoAlertButton(symbol: ipo.symbol, size: 24),
+            const SizedBox(width: 4),
             // Price & Badge
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -109,3 +113,4 @@ class AllIposListItem extends StatelessWidget {
     );
   }
 }
+
