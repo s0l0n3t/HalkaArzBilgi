@@ -7,6 +7,7 @@ class WatchlistSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final stocks = StockModel.mockWatchlist;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -19,8 +20,16 @@ class WatchlistSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        ...StockModel.mockWatchlist.map((stock) => WatchlistItem(stock: stock)),
+        ...List.generate(stocks.length, (index) {
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: index < stocks.length - 1 ? 12.0 : 0.0,
+            ),
+            child: WatchlistItem(stock: stocks[index]),
+          );
+        }),
       ],
     );
   }
 }
+

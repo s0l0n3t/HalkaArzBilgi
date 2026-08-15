@@ -8,6 +8,8 @@ class StockModel {
   final double change;
   final double changePercent;
   final String? logoUrl;
+  final int? tavanSeriDays;
+  final int? tavanSeriCompleted;
 
   const StockModel({
     required this.id,
@@ -19,6 +21,8 @@ class StockModel {
     required this.change,
     required this.changePercent,
     this.logoUrl,
+    this.tavanSeriDays,
+    this.tavanSeriCompleted,
   });
 
   bool get isGain => change >= 0;
@@ -33,6 +37,8 @@ class StockModel {
       currentPrice: 65.50,
       change: -355.56,
       changePercent: -15.33,
+      tavanSeriDays: 3,
+      tavanSeriCompleted: 2,
     ),
     StockModel(
       id: '2',
@@ -43,6 +49,8 @@ class StockModel {
       currentPrice: 35.50,
       change: -95.20,
       changePercent: -3.45,
+      tavanSeriDays: 5,
+      tavanSeriCompleted: 5,
     ),
     StockModel(
       id: '3',
@@ -53,6 +61,8 @@ class StockModel {
       currentPrice: 76.50,
       change: 124.80,
       changePercent: 2.15,
+      tavanSeriDays: 4,
+      tavanSeriCompleted: 3,
     ),
     StockModel(
       id: '4',
@@ -63,6 +73,8 @@ class StockModel {
       currentPrice: 22.80,
       change: 456.00,
       changePercent: 8.72,
+      tavanSeriDays: 7,
+      tavanSeriCompleted: 7,
     ),
     StockModel(
       id: '5',
@@ -73,6 +85,8 @@ class StockModel {
       currentPrice: 48.00,
       change: -210.40,
       changePercent: -11.20,
+      tavanSeriDays: 0,
+      tavanSeriCompleted: 0,
     ),
     StockModel(
       id: '6',
@@ -83,6 +97,8 @@ class StockModel {
       currentPrice: 17.40,
       change: 33.18,
       changePercent: 5.44,
+      tavanSeriDays: 3,
+      tavanSeriCompleted: 1,
     ),
     StockModel(
       id: '7',
@@ -93,6 +109,8 @@ class StockModel {
       currentPrice: 9.60,
       change: -144.00,
       changePercent: -6.25,
+      tavanSeriDays: 0,
+      tavanSeriCompleted: 0,
     ),
     StockModel(
       id: '8',
@@ -103,6 +121,8 @@ class StockModel {
       currentPrice: 31.20,
       change: 78.00,
       changePercent: 12.50,
+      tavanSeriDays: 6,
+      tavanSeriCompleted: 4,
     ),
   ];
 }

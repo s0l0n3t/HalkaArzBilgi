@@ -12,18 +12,29 @@ class WatchlistItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
+      borderRadius: BorderRadius.circular(12),
       onTap: () {
-        context.push('/stock/${stock.id}');
+        context.push('/ipo/${stock.symbol}');
       },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1C),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFF2C2C2E),
+            width: 0.5,
+          ),
+        ),
         child: Row(
           children: [
+            // Logo placeholder
             Container(
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFF00B856)),
+                border: Border.all(
+                    color: const Color(0xFF00B856), width: 1.5),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Center(
@@ -31,6 +42,8 @@ class WatchlistItem extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
+
+            // Symbol / Lots / Cost + Change
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,6 +79,8 @@ class WatchlistItem extends StatelessWidget {
                 ],
               ),
             ),
+
+            // Current price + badge
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -90,3 +105,4 @@ class WatchlistItem extends StatelessWidget {
     );
   }
 }
+
