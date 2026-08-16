@@ -24,3 +24,29 @@ final watchlistProvider =
     StateNotifierProvider<WatchlistNotifier, Set<String>>((ref) {
   return WatchlistNotifier();
 });
+
+/// Manages the set of symbols that the user has added to their watchlist
+/// (via the add_watchlist / bookmark icon). Separate from alert notifications.
+class WatchlistMarkNotifier extends StateNotifier<Set<String>> {
+  WatchlistMarkNotifier()
+      : super(
+          // All mock watchlist stocks start as bookmarked by default
+          StockModel.mockWatchlist.map((s) => s.symbol).toSet(),
+        );
+
+  bool isWatchlisted(String symbol) => state.contains(symbol);
+
+  void toggleWatchlist(String symbol) {
+    if (state.contains(symbol)) {
+      state = {...state}..remove(symbol);
+    } else {
+      state = {...state, symbol};
+    }
+  }
+}
+
+final watchlistMarkProvider =
+    StateNotifierProvider<WatchlistMarkNotifier, Set<String>>((ref) {
+  return WatchlistMarkNotifier();
+});
+

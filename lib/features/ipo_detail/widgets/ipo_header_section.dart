@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/features/home/models/ipo_model.dart';
-import 'package:halkaarzbilgi/core/widgets/ipo_alert_button.dart';
 
-class IpoHeaderSection extends ConsumerWidget {
+class IpoHeaderSection extends StatelessWidget {
   final IpoModel ipo;
 
   const IpoHeaderSection({super.key, required this.ipo});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Row(
       children: [
         // Logo kutusu (yeşil çerçeve ve X ikonu / yeşil stil)
@@ -54,8 +52,6 @@ class IpoHeaderSection extends ConsumerWidget {
             ],
           ),
         ),
-        // Zil / Alert butonu (paylaşımlı, guest için gizli)
-        IpoAlertButton(symbol: ipo.symbol),
       ],
     );
   }

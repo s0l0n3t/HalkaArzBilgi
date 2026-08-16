@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/features/home/models/ipo_model.dart';
 import 'package:halkaarzbilgi/core/widgets/percentage_badge.dart';
 import 'package:halkaarzbilgi/core/widgets/ipo_alert_button.dart';
+import 'package:halkaarzbilgi/core/widgets/ipo_watchlist_button.dart';
 
 class AllIposListItem extends ConsumerWidget {
   final IpoModel ipo;
@@ -84,7 +85,8 @@ class AllIposListItem extends ConsumerWidget {
             ),
             // Alert button (hidden for guests, animated for logged-in users)
             IpoAlertButton(symbol: ipo.symbol, size: 24),
-            const SizedBox(width: 4),
+            // Watchlist (add/remove) button
+            IpoWatchlistButton(symbol: ipo.symbol, size: 24),
             // Price & Badge
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,

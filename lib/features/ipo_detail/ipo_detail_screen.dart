@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:halkaarzbilgi/core/providers/auth_provider.dart';
+import 'package:halkaarzbilgi/core/widgets/ipo_watchlist_button.dart';
 import 'package:halkaarzbilgi/features/home/models/ipo_model.dart';
 import 'package:halkaarzbilgi/features/ipo_detail/widgets/ipo_header_section.dart';
 import 'package:halkaarzbilgi/features/ipo_detail/widgets/ipo_basic_info_section.dart';
@@ -10,17 +14,20 @@ import 'package:halkaarzbilgi/features/ipo_detail/widgets/ipo_allocation_section
 import 'package:halkaarzbilgi/features/ipo_detail/widgets/ipo_results_section.dart';
 import 'package:halkaarzbilgi/features/ipo_detail/widgets/ipo_documents_section.dart';
 
-class IpoDetailScreen extends StatelessWidget {
+class IpoDetailScreen extends ConsumerWidget {
   final String symbol;
 
   const IpoDetailScreen({super.key, required this.symbol});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final ipo = IpoModel.mockAllIpos.firstWhere(
       (i) => i.symbol == symbol,
       orElse: () => IpoModel.mockAllIpos.first,
     );
+
+    final authState = ref.watch(authProvider);
+    final isLoggedIn = authState.status == AuthStatus.authenticated;
 
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
@@ -41,6 +48,34 @@ class IpoDetailScreen extends StatelessWidget {
           ),
         ),
         centerTitle: true,
+        actions: isLoggedIn
+            ? [
+                // Alert button (placeholder — feature coming soon)
+                GestureDetector(
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Bildirim özelliği yakında eklenecek.'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: SvgPicture.asset(
+                      'assets/alert_inactive.svg',
+                      height: 24,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                // Watchlist (add/remove) button
+                IpoWatchlistButton(symbol: ipo.symbol, size: 24),
+                const SizedBox(width: 8),
+              ]
+            : null,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -48,7 +83,7 @@ class IpoDetailScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Header (Logo + Ad/Sembol + Alert Butonu)
+              // 1. Header (Logo + Ad/Sembol)
               //Alert butonu efekti fixle
               IpoHeaderSection(ipo: ipo),
               const SizedBox(height: 20),
