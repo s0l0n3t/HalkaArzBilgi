@@ -46,35 +46,13 @@ class AccountCard extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '${totalValue.toStringAsFixed(2).replaceAll('.', ',')} TL',
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Row(
-              children: [
-                SvgPicture.asset(
-                  'assets/icons/Union7.svg',
-                  width: 16,
-                  height: 16,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  'Halka arz ekle',
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ],
+        Text(
+          '${totalValue.toStringAsFixed(2).replaceAll('.', ',')} TL',
+          style: GoogleFonts.inter(
+            color: Colors.white,
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 8),
         Row(
