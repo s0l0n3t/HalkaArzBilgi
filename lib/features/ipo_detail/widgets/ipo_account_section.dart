@@ -42,14 +42,14 @@ class IpoAccountSection extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Info SVG icon — vertically centered with the text block
+          // Info SVG icon — outlined green circle
           SvgPicture.asset(
-            'assets/information_icon.svg',
-            width: 34,
-            height: 34,
+            'assets/information_alternatives.svg',
+            width: 24,
+            height: 24,
             fit: BoxFit.contain,
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
 
           // Title, subtitle, lots + cost row
           Expanded(
@@ -57,42 +57,55 @@ class IpoAccountSection extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // "Hesabım" title — Inter bold
+                // "Hesabım" title — Inter semi-bold
                 Text(
                   'Hesabım',
                   style: GoogleFonts.inter(
                     color: const Color(0xFF00B856),
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    height: 1.3,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    height: 1.2,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
                 // "Satın alınan hisse" subtitle — Inter regular
                 Text(
                   'Satın alınan hisse',
                   style: GoogleFonts.inter(
                     color: const Color(0xFF8E8E93),
-                    fontSize: 15,
+                    fontSize: 13,
                     fontWeight: FontWeight.w400,
-                    height: 1.3,
+                    height: 1.2,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 6),
                 // Lot count + cost and gain/loss on the same row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
                   children: [
-                    // "50 lot" — Inter bold
-                    Text(
-                      '${entry.lots} lot',
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        height: 1.3,
+                    // Lot number clean weight + lighter unit
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '${entry.lots}',
+                            style: GoogleFonts.inter(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          TextSpan(
+                            text: ' lot',
+                            style: GoogleFonts.inter(
+                              color: const Color(0xFF8E8E93),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     // Total cost + gain/loss inline
@@ -101,12 +114,31 @@ class IpoAccountSection extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.baseline,
                       textBaseline: TextBaseline.alphabetic,
                       children: [
-                        Text(
-                          '${entry.totalCost.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')} TL',
-                          style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
+                        RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: entry.totalCost
+                                    .toStringAsFixed(0)
+                                    .replaceAllMapped(
+                                      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                                      (m) => '${m[1]}.',
+                                    ),
+                                style: GoogleFonts.inter(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              TextSpan(
+                                text: ' TL',
+                                style: GoogleFonts.inter(
+                                  color: const Color(0xFF8E8E93),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -114,7 +146,7 @@ class IpoAccountSection extends ConsumerWidget {
                           '$changePrefix${entry.totalGainLoss.toStringAsFixed(2).replaceAll('.', ',')} TL',
                           style: GoogleFonts.inter(
                             color: changeColor,
-                            fontSize: 15,
+                            fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
