@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/features/home/models/stock_model.dart';
 import 'package:halkaarzbilgi/core/widgets/percentage_badge.dart';
 
@@ -14,7 +15,7 @@ class StockPriceHeader extends StatelessWidget {
       children: [
         Text(
           '${stock.currentPrice.toStringAsFixed(2).replaceAll('.', ',')} TL',
-          style: const TextStyle(
+          style: GoogleFonts.inter(
             color: Colors.white,
             fontSize: 40,
             fontWeight: FontWeight.bold,
@@ -25,8 +26,8 @@ class StockPriceHeader extends StatelessWidget {
           children: [
             Text(
               '${stock.change > 0 ? '+' : ''}${stock.change.toStringAsFixed(2).replaceAll('.', ',')} TL',
-              style: TextStyle(
-                color: stock.isGain ? const Color(0xFF00B856) : const Color(0xFFFF3B30),
+              style: GoogleFonts.inter(
+                color: stock.isGain ? const Color(0xFF23A983) : const Color(0xFFFF3B30),
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
               ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/features/home/models/ipo_model.dart';
 import 'package:halkaarzbilgi/features/home/widgets/all_ipos_list_item.dart';
 
@@ -14,9 +15,9 @@ class AllIposSection extends StatelessWidget {
           onTap: () {
             // Navigate to all IPOs list
           },
-          child: const Text(
+          child: Text(
             'Halka Arzlar >',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               color: Colors.white,
               fontSize: 18,
               fontWeight: FontWeight.bold,

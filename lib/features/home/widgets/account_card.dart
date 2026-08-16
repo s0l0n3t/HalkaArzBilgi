@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/core/providers/auth_provider.dart';
+import 'package:halkaarzbilgi/core/providers/watchlist_provider.dart';
 
 class AccountCard extends ConsumerWidget {
   const AccountCard({super.key});
@@ -9,6 +11,18 @@ class AccountCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userName = ref.watch(authProvider).userName;
+    final notifier = ref.read(watchlistMarkProvider.notifier);
+    // Watch the portfolio map to react to changes
+    ref.watch(watchlistMarkProvider);
+
+    final totalValue = notifier.totalPortfolioValue;
+    final totalGainLoss = notifier.totalGainLoss;
+    final totalPercent = notifier.totalGainLossPercent;
+    final isGain = totalGainLoss >= 0;
+
+    final changeColor =
+        isGain ? const Color(0xFF23A983) : const Color(0xFFFF3B30);
+    final changePrefix = isGain ? '+' : '';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -18,7 +32,7 @@ class AccountCard extends ConsumerWidget {
           children: [
             Text(
               userName,
-              style: const TextStyle(
+              style: GoogleFonts.inter(
                 color: Colors.white,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -35,9 +49,9 @@ class AccountCard extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              '41,13 TL',
-              style: TextStyle(
+            Text(
+              '${totalValue.toStringAsFixed(2).replaceAll('.', ',')} TL',
+              style: GoogleFonts.inter(
                 color: Colors.white,
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
@@ -51,9 +65,9 @@ class AccountCard extends ConsumerWidget {
                   height: 16,
                 ),
                 const SizedBox(width: 4),
-                const Text(
+                Text(
                   'Halka arz ekle',
-                  style: TextStyle(
+                  style: GoogleFonts.inter(
                     color: Colors.white,
                     fontSize: 14,
                   ),
@@ -65,10 +79,10 @@ class AccountCard extends ConsumerWidget {
         const SizedBox(height: 8),
         Row(
           children: [
-            const Text(
-              '-22,35 TL',
-              style: TextStyle(
-                color: Color(0xFFFF3B30),
+            Text(
+              '$changePrefix${totalGainLoss.toStringAsFixed(2).replaceAll('.', ',')} TL',
+              style: GoogleFonts.inter(
+                color: changeColor,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
@@ -77,12 +91,12 @@ class AccountCard extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: const Color(0xFFFF3B30),
+                color: changeColor,
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: const Text(
-                '-3.45%',
-                style: TextStyle(
+              child: Text(
+                '$changePrefix${totalPercent.toStringAsFixed(2)}%',
+                style: GoogleFonts.inter(
                   color: Colors.white,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,

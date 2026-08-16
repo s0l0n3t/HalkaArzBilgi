@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/features/home/models/stock_model.dart';
 
 class StockInfoCard extends StatelessWidget {
@@ -28,7 +29,7 @@ class StockInfoCard extends StatelessWidget {
             children: [
               Text(
                 stock.symbol,
-                style: const TextStyle(
+                style: GoogleFonts.inter(
                   color: Colors.white,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -37,8 +38,8 @@ class StockInfoCard extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 stock.companyName,
-                style: const TextStyle(
-                  color: Color(0xFF888888),
+                style: GoogleFonts.inter(
+                  color: const Color(0xFF888888),
                   fontSize: 16,
                 ),
               ),

@@ -12,6 +12,7 @@ import 'package:halkaarzbilgi/features/ipo_detail/widgets/ipo_tavan_section.dart
 import 'package:halkaarzbilgi/features/ipo_detail/widgets/ipo_graph_section.dart';
 import 'package:halkaarzbilgi/features/ipo_detail/widgets/ipo_allocation_section.dart';
 import 'package:halkaarzbilgi/features/ipo_detail/widgets/ipo_results_section.dart';
+import 'package:halkaarzbilgi/features/ipo_detail/widgets/ipo_account_section.dart';
 import 'package:halkaarzbilgi/features/ipo_detail/widgets/ipo_documents_section.dart';
 
 class IpoDetailScreen extends ConsumerWidget {
@@ -86,7 +87,13 @@ class IpoDetailScreen extends ConsumerWidget {
               // 1. Header (Logo + Ad/Sembol)
               //Alert butonu efekti fixle
               IpoHeaderSection(ipo: ipo),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+
+              // 1.5. Hesabım kartı (portföye eklenmiş hisseler için)
+              if (isLoggedIn) ...[
+                IpoAccountSection(symbol: ipo.symbol),
+                const SizedBox(height: 16),
+              ],
 
               // 2. Bilgi Satırları (Kutusuz düz liste)
               //İçerik düzenlemesi yapılacak.

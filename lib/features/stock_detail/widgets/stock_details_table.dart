@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/features/home/models/stock_model.dart';
 
 class StockDetailsTable extends StatelessWidget {
@@ -27,7 +28,7 @@ class StockDetailsTable extends StatelessWidget {
           _buildRow(
             'Kar/Zarar',
             '${stock.change > 0 ? '+' : ''}${stock.change.toStringAsFixed(2).replaceAll('.', ',')} TL',
-            valueColor: stock.isGain ? const Color(0xFF00B856) : const Color(0xFFFF3B30),
+            valueColor: stock.isGain ? const Color(0xFF23A983) : const Color(0xFFFF3B30),
           ),
           const Divider(color: Color(0xFF333333), height: 24),
           _buildRow('Halka Arz Tarihi', '-'),
@@ -42,14 +43,14 @@ class StockDetailsTable extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: Color(0xFF888888),
+          style: GoogleFonts.inter(
+            color: const Color(0xFF888888),
             fontSize: 16,
           ),
         ),
         Text(
           value,
-          style: TextStyle(
+          style: GoogleFonts.inter(
             color: valueColor ?? Colors.white,
             fontSize: 16,
             fontWeight: FontWeight.w600,

@@ -60,7 +60,7 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
 
     // Renk: açılış fiyatına göre yeşil veya kırmızı
     final Color chartColor =
-        isGain ? const Color(0xFF00B856) : const Color(0xFFFF3B30);
+        isGain ? const Color(0xFF23A983) : const Color(0xFFFF3B30);
 
     // Y ekseni dinamik aralık (padding ile)
     final double priceRange = chartData.maxPrice - chartData.minPrice;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/features/home/models/ipo_model.dart';
 
 class IpoListItem extends StatelessWidget {
@@ -30,7 +31,7 @@ class IpoListItem extends StatelessWidget {
               children: [
                 Text(
                   ipo.symbol,
-                  style: const TextStyle(
+                  style: GoogleFonts.inter(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -38,15 +39,15 @@ class IpoListItem extends StatelessWidget {
                 ),
                 Text(
                   ipo.companyName,
-                  style: const TextStyle(
-                    color: Color(0xFF888888),
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFF888888),
                     fontSize: 14,
                   ),
                 ),
                 Text(
                   ipo.ipoDate,
-                  style: const TextStyle(
-                    color: Color(0xFF888888),
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFF888888),
                     fontSize: 12,
                   ),
                 ),
@@ -55,7 +56,7 @@ class IpoListItem extends StatelessWidget {
           ),
           Text(
             '${ipo.price.toStringAsFixed(2).replaceAll('.', ',')} TL',
-            style: const TextStyle(
+            style: GoogleFonts.inter(
               color: Colors.white,
               fontWeight: FontWeight.bold,
               fontSize: 16,

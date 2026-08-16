@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/features/home/models/ipo_model.dart';
 import 'package:halkaarzbilgi/features/home/widgets/ipo_list_item.dart';
 
@@ -14,9 +15,9 @@ class NewIposSection extends StatelessWidget {
           onTap: () {
             // Tappable header
           },
-          child: const Text(
+          child: Text(
             'Yeni Halka Arzlar >',
-            style: TextStyle(
+            style: GoogleFonts.inter(
               color: Colors.white,
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -44,10 +45,10 @@ class NewIposSection extends StatelessWidget {
                 );
               }),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Yeni çıkan diğer halka arzlar için tıklayınız.',
-                style: TextStyle(
-                  color: Color(0xFF888888),
+                style: GoogleFonts.inter(
+                  color: const Color(0xFF888888),
                   fontSize: 12,
                 ),
               ),
