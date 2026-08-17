@@ -42,9 +42,9 @@ class IpoAccountSection extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Info SVG icon — outlined green circle
+          // Info SVG icon
           SvgPicture.asset(
-            'assets/information_alternatives.svg',
+            'assets/information_icon.svg',
             width: 24,
             height: 24,
             fit: BoxFit.contain,
