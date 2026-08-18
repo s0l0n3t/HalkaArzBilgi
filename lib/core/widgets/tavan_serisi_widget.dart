@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:halkaarzbilgi/core/theme/app_colors.dart';
 
 /// Reusable Tavan Serisi widget — pixel-perfect replica of assets/tavan.png.
 /// Uses Ellipse 8.svg (green circle with inner shadow) and Frame.svg (checkmark).
@@ -163,16 +164,39 @@ class _TavanSerisiWidgetState extends State<TavanSerisiWidget>
                                   ),
                                 ),
                               ),
-                              // Green circle image (empty-circle.png)
-                              Transform.scale(
-                                scale: fillVal,
-                                child: Image.asset(
-                                  'assets/empty-circle.png',
-                                  width: 30,
-                                  height: 30,
-                                  fit: BoxFit.contain,
+                              // Green circle (BoxDecoration gradient + shadow)
+                              if (fillVal > 0.0)
+                                Opacity(
+                                  opacity: fillVal.clamp(0.0, 1.0),
+                                  child: Container(
+                                    width: 30,
+                                    height: 30,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: const LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          Color(0xFF00D462),
+                                          AppColors.primaryGreen,
+                                          Color(0xFF009645),
+                                        ],
+                                      ),
+                                      border: Border.all(
+                                        color: const Color(0xFF3A3A3C),
+                                        width: 1.5,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black
+                                              .withValues(alpha: 0.25),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                              ),
                               // Checkmark image (checkmark.png)
                               if (isCompleted)
                                 Transform.scale(
@@ -197,7 +221,8 @@ class _TavanSerisiWidgetState extends State<TavanSerisiWidget>
                       '${index + 1}',
                       style: GoogleFonts.inter(
                         color: const Color(0xFF8E8E93),
-                        fontSize: 11,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -208,12 +233,13 @@ class _TavanSerisiWidgetState extends State<TavanSerisiWidget>
 
         // ── "Günler" label ─────────────────────────────────────────
         if (!isEnded) ...[
-          const SizedBox(height: 2),
+          const SizedBox(height: 12),
           Text(
             'Günler',
             style: GoogleFonts.inter(
               color: const Color(0xFF8E8E93),
-              fontSize: 11,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
