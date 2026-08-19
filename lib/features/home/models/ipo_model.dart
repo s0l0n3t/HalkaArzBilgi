@@ -11,12 +11,21 @@ class AllocationGroup {
   });
 }
 
-/// Halka arz sonuçları tablo satırı
-class IpoResultRow {
-  final String label;
-  final String value;
+/// Halka arz dağıtım / talep sonuçları tablo satırı
+class IpoDistributionResult {
+  final String investorGroup;
+  final String personCount;
+  final String lotCount;
+  final String ratio;
+  final bool isTotal;
 
-  const IpoResultRow({required this.label, required this.value});
+  const IpoDistributionResult({
+    required this.investorGroup,
+    required this.personCount,
+    required this.lotCount,
+    required this.ratio,
+    this.isTotal = false,
+  });
 }
 
 /// Halka arz dökümanı
@@ -47,7 +56,9 @@ class IpoModel {
   final double? priceStability;
   final String? sharesOffered;
   final List<AllocationGroup>? allocationGroups;
-  final List<IpoResultRow>? ipoResults;
+  final List<IpoDistributionResult>? distributionResults;
+  final List<IpoDistributionResult>? demandResults;
+  final String? perPersonLot;
   final List<IpoDocument>? documents;
 
   // Yeni tasarım bilgi satırları ve tavan serisi alanları
@@ -77,7 +88,9 @@ class IpoModel {
     this.priceStability,
     this.sharesOffered,
     this.allocationGroups,
-    this.ipoResults,
+    this.distributionResults,
+    this.demandResults,
+    this.perPersonLot,
     this.documents,
     this.ipoPrice,
     this.ipoDates,
@@ -94,6 +107,50 @@ class IpoModel {
   });
 
   bool get isGain => (change ?? 0) >= 0;
+
+  static const List<IpoDistributionResult> _defaultDistribution = [
+    IpoDistributionResult(
+      investorGroup: 'Yurt İçi Bireysel',
+      personCount: '582.468',
+      lotCount: '28.987.770',
+      ratio: '%60',
+    ),
+    IpoDistributionResult(
+      investorGroup: 'Yurt İçi Kurumsal',
+      personCount: '39',
+      lotCount: '19.325.180',
+      ratio: '%40',
+    ),
+    IpoDistributionResult(
+      investorGroup: 'TOPLAM',
+      personCount: '582.507',
+      lotCount: '48.312.950',
+      ratio: '%100',
+      isTotal: true,
+    ),
+  ];
+
+  static const List<IpoDistributionResult> _defaultDemand = [
+    IpoDistributionResult(
+      investorGroup: 'Yurt İçi Bireysel',
+      personCount: '589.652',
+      lotCount: '37.902.061',
+      ratio: '%65',
+    ),
+    IpoDistributionResult(
+      investorGroup: 'Yurt İçi Kurumsal',
+      personCount: '40',
+      lotCount: '20.668.477',
+      ratio: '%35',
+    ),
+    IpoDistributionResult(
+      investorGroup: 'TOPLAM',
+      personCount: '589.692',
+      lotCount: '58.570.538',
+      ratio: '%100',
+      isTotal: true,
+    ),
+  ];
 
   static const List<AllocationGroup> _defaultAllocation = [
     AllocationGroup(
@@ -172,14 +229,9 @@ class IpoModel {
       priceStability: 87.4,
       sharesOffered: '12.500.000 Lot',
       allocationGroups: _defaultAllocation,
-      ipoResults: [
-        IpoResultRow(label: 'Toplam Talep', value: '42.187.500 Lot'),
-        IpoResultRow(label: 'Talep / Arz Oranı', value: '3,37x'),
-        IpoResultRow(label: 'Bireysel Kesinleşen Lot', value: '7.500.000'),
-        IpoResultRow(label: 'Kurumsal Kesinleşen Lot', value: '3.750.000'),
-        IpoResultRow(label: 'Halka Arz Fiyatı', value: '65,50 TL'),
-        IpoResultRow(label: 'İşlem Başlangıç Tarihi', value: '18 Temmuz 2026'),
-      ],
+      distributionResults: _defaultDistribution,
+      demandResults: _defaultDemand,
+      perPersonLot: '50 Lot (6.437,50 TL)',
       documents: [
         IpoDocument(name: 'İzahname', fileType: 'PDF'),
         IpoDocument(name: 'Sermaye Piyasası Aracı Notu', fileType: 'PDF'),
@@ -199,14 +251,9 @@ class IpoModel {
       priceStability: 72.8,
       sharesOffered: '8.000.000 Lot',
       allocationGroups: _defaultAllocation,
-      ipoResults: [
-        IpoResultRow(label: 'Toplam Talep', value: '21.600.000 Lot'),
-        IpoResultRow(label: 'Talep / Arz Oranı', value: '2,70x'),
-        IpoResultRow(label: 'Bireysel Kesinleşen Lot', value: '4.800.000'),
-        IpoResultRow(label: 'Kurumsal Kesinleşen Lot', value: '2.400.000'),
-        IpoResultRow(label: 'Halka Arz Fiyatı', value: '35,50 TL'),
-        IpoResultRow(label: 'İşlem Başlangıç Tarihi', value: '27 Ağustos 2026'),
-      ],
+      distributionResults: _defaultDistribution,
+      demandResults: _defaultDemand,
+      perPersonLot: '50 Lot (6.437,50 TL)',
       documents: [
         IpoDocument(name: 'İzahname', fileType: 'PDF'),
         IpoDocument(name: 'Sermaye Piyasası Aracı Notu', fileType: 'PDF'),
@@ -225,14 +272,9 @@ class IpoModel {
       priceStability: 91.2,
       sharesOffered: '15.000.000 Lot',
       allocationGroups: _defaultAllocation,
-      ipoResults: [
-        IpoResultRow(label: 'Toplam Talep', value: '73.050.000 Lot'),
-        IpoResultRow(label: 'Talep / Arz Oranı', value: '4,87x'),
-        IpoResultRow(label: 'Bireysel Kesinleşen Lot', value: '9.000.000'),
-        IpoResultRow(label: 'Kurumsal Kesinleşen Lot', value: '4.500.000'),
-        IpoResultRow(label: 'Halka Arz Fiyatı', value: '76,50 TL'),
-        IpoResultRow(label: 'İşlem Başlangıç Tarihi', value: '06 Eylül 2026'),
-      ],
+      distributionResults: _defaultDistribution,
+      demandResults: _defaultDemand,
+      perPersonLot: '50 Lot (6.437,50 TL)',
       documents: [
         IpoDocument(name: 'İzahname', fileType: 'PDF'),
         IpoDocument(name: 'Sermaye Piyasası Aracı Notu', fileType: 'PDF'),
@@ -253,14 +295,9 @@ class IpoModel {
       priceStability: 78.5,
       sharesOffered: '20.000.000 Lot',
       allocationGroups: _defaultAllocation,
-      ipoResults: [
-        IpoResultRow(label: 'Toplam Talep', value: '102.600.000 Lot'),
-        IpoResultRow(label: 'Talep / Arz Oranı', value: '5,13x'),
-        IpoResultRow(label: 'Bireysel Kesinleşen Lot', value: '12.000.000'),
-        IpoResultRow(label: 'Kurumsal Kesinleşen Lot', value: '6.000.000'),
-        IpoResultRow(label: 'Halka Arz Fiyatı', value: '22,80 TL'),
-        IpoResultRow(label: 'İşlem Başlangıç Tarihi', value: '10 Haziran 2026'),
-      ],
+      distributionResults: _defaultDistribution,
+      demandResults: _defaultDemand,
+      perPersonLot: '50 Lot (6.437,50 TL)',
       documents: [
         IpoDocument(name: 'İzahname', fileType: 'PDF'),
         IpoDocument(name: 'Sermaye Piyasası Aracı Notu', fileType: 'PDF'),
@@ -279,14 +316,9 @@ class IpoModel {
       priceStability: 61.3,
       sharesOffered: '6.250.000 Lot',
       allocationGroups: _defaultAllocation,
-      ipoResults: [
-        IpoResultRow(label: 'Toplam Talep', value: '11.812.500 Lot'),
-        IpoResultRow(label: 'Talep / Arz Oranı', value: '1,89x'),
-        IpoResultRow(label: 'Bireysel Kesinleşen Lot', value: '3.750.000'),
-        IpoResultRow(label: 'Kurumsal Kesinleşen Lot', value: '1.875.000'),
-        IpoResultRow(label: 'Halka Arz Fiyatı', value: '48,00 TL'),
-        IpoResultRow(label: 'İşlem Başlangıç Tarihi', value: '15 Mayıs 2026'),
-      ],
+      distributionResults: _defaultDistribution,
+      demandResults: _defaultDemand,
+      perPersonLot: '50 Lot (6.437,50 TL)',
       documents: [
         IpoDocument(name: 'İzahname', fileType: 'PDF'),
         IpoDocument(name: 'Sermaye Piyasası Aracı Notu', fileType: 'PDF'),
@@ -306,14 +338,9 @@ class IpoModel {
       priceStability: 83.7,
       sharesOffered: '10.000.000 Lot',
       allocationGroups: _defaultAllocation,
-      ipoResults: [
-        IpoResultRow(label: 'Toplam Talep', value: '35.600.000 Lot'),
-        IpoResultRow(label: 'Talep / Arz Oranı', value: '3,56x'),
-        IpoResultRow(label: 'Bireysel Kesinleşen Lot', value: '6.000.000'),
-        IpoResultRow(label: 'Kurumsal Kesinleşen Lot', value: '3.000.000'),
-        IpoResultRow(label: 'Halka Arz Fiyatı', value: '17,40 TL'),
-        IpoResultRow(label: 'İşlem Başlangıç Tarihi', value: '23 Nisan 2026'),
-      ],
+      distributionResults: _defaultDistribution,
+      demandResults: _defaultDemand,
+      perPersonLot: '50 Lot (6.437,50 TL)',
       documents: [
         IpoDocument(name: 'İzahname', fileType: 'PDF'),
         IpoDocument(name: 'Sermaye Piyasası Aracı Notu', fileType: 'PDF'),
@@ -332,14 +359,9 @@ class IpoModel {
       priceStability: 69.1,
       sharesOffered: '9.000.000 Lot',
       allocationGroups: _defaultAllocation,
-      ipoResults: [
-        IpoResultRow(label: 'Toplam Talep', value: '21.960.000 Lot'),
-        IpoResultRow(label: 'Talep / Arz Oranı', value: '2,44x'),
-        IpoResultRow(label: 'Bireysel Kesinleşen Lot', value: '5.400.000'),
-        IpoResultRow(label: 'Kurumsal Kesinleşen Lot', value: '2.700.000'),
-        IpoResultRow(label: 'Halka Arz Fiyatı', value: '9,60 TL'),
-        IpoResultRow(label: 'İşlem Başlangıç Tarihi', value: '07 Mart 2026'),
-      ],
+      distributionResults: _defaultDistribution,
+      demandResults: _defaultDemand,
+      perPersonLot: '50 Lot (6.437,50 TL)',
       documents: [
         IpoDocument(name: 'İzahname', fileType: 'PDF'),
         IpoDocument(name: 'Sermaye Piyasası Aracı Notu', fileType: 'PDF'),
@@ -359,14 +381,9 @@ class IpoModel {
       priceStability: 94.6,
       sharesOffered: '18.000.000 Lot',
       allocationGroups: _defaultAllocation,
-      ipoResults: [
-        IpoResultRow(label: 'Toplam Talep', value: '111.960.000 Lot'),
-        IpoResultRow(label: 'Talep / Arz Oranı', value: '6,22x'),
-        IpoResultRow(label: 'Bireysel Kesinleşen Lot', value: '10.800.000'),
-        IpoResultRow(label: 'Kurumsal Kesinleşen Lot', value: '5.400.000'),
-        IpoResultRow(label: 'Halka Arz Fiyatı', value: '31,20 TL'),
-        IpoResultRow(label: 'İşlem Başlangıç Tarihi', value: '20 Şubat 2026'),
-      ],
+      distributionResults: _defaultDistribution,
+      demandResults: _defaultDemand,
+      perPersonLot: '50 Lot (6.437,50 TL)',
       documents: [
         IpoDocument(name: 'İzahname', fileType: 'PDF'),
         IpoDocument(name: 'Sermaye Piyasası Aracı Notu', fileType: 'PDF'),

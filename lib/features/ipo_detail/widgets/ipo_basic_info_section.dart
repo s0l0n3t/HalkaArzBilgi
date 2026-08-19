@@ -27,28 +27,24 @@ class IpoBasicInfoSection extends StatelessWidget {
         value: ipo.market ?? 'Yıldız Pazar',
       ),
       _InfoRow(
-        label: 'Bist ilk işlem tarihi:',
-        value: ipo.firstTradeDate ?? '-',
-      ),
-      _InfoRow(
-        label: 'Pay:',
-        value: ipo.shares ?? ipo.sharesOffered ?? '-',
-      ),
-      _InfoRow(
-        label: 'Katılım endeksi:',
-        value: ipo.katilimEndeksi ?? (ipo.participationIndex != null ? 'Evet' : 'Katılmıyor'),
+        label: 'Halka arz edilecek paylar:',
+        value: ipo.halkaArzEdilecekPaylar ?? ipo.shares ?? ipo.sharesOffered ?? '-',
       ),
       _InfoRow(
         label: 'Halka açıklık oranı:',
         value: ipo.halkaAciklikOrani ?? (ipo.publicShareRatio != null ? '%${ipo.publicShareRatio!.toStringAsFixed(1).replaceAll('.', ',')}' : '-'),
       ),
       _InfoRow(
-        label: 'Fiyat istikrar:',
+        label: 'Fiyat istikrarı:',
         value: ipo.fiyatIstikrari ?? 'Planlanmıyor',
       ),
       _InfoRow(
-        label: 'Halka arz edilecek paylar:',
-        value: ipo.halkaArzEdilecekPaylar ?? ipo.sharesOffered ?? '-',
+        label: 'Katılım endeksi:',
+        value: ipo.katilimEndeksi ?? (ipo.participationIndex != null ? 'Evet' : 'Katılmıyor'),
+      ),
+      _InfoRow(
+        label: 'Bist ilk işlem tarihi:',
+        value: ipo.firstTradeDate ?? '-',
       ),
     ];
 

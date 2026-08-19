@@ -120,9 +120,15 @@ class IpoDetailScreen extends ConsumerWidget {
               ],
 
               // 6. Halka Arz Sonuçları
-              //İçerikte sorun var
-              if (ipo.ipoResults != null && ipo.ipoResults!.isNotEmpty) ...[
-                IpoResultsSection(rows: ipo.ipoResults!),
+              if ((ipo.distributionResults != null &&
+                      ipo.distributionResults!.isNotEmpty) ||
+                  (ipo.demandResults != null &&
+                      ipo.demandResults!.isNotEmpty)) ...[
+                IpoResultsSection(
+                  distributionResults: ipo.distributionResults,
+                  demandResults: ipo.demandResults,
+                  perPersonLot: ipo.perPersonLot,
+                ),
                 const SizedBox(height: 28),
               ],
 

@@ -2,10 +2,12 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:halkaarzbilgi/core/theme/app_colors.dart';
 import 'package:halkaarzbilgi/features/home/models/ipo_model.dart';
 import 'package:halkaarzbilgi/core/widgets/percentage_badge.dart';
 import 'package:halkaarzbilgi/features/ipo_detail/models/chart_data_model.dart';
 import 'package:halkaarzbilgi/features/ipo_detail/services/chart_data_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class IpoGraphSection extends StatefulWidget {
   final IpoModel ipo;
@@ -350,24 +352,67 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
         ),
         const SizedBox(height: 12),
         // Saat / Gecikme uyarısı & Yahoo Finance ikonu
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '15:34  (15 dakika gecikmeli)',
-              style: GoogleFonts.inter(
-                color: const Color(0xFF8E8E93),
-                fontSize: 12,
+        GestureDetector(
+          onTap: _launchYahooFinance,
+          behavior: HitTestBehavior.opaque,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '15:34  (15 dakika gecikmeli)',
+                style: GoogleFonts.inter(
+                  color: const Color(0xFF8E8E93),
+                  fontSize: 12,
+                ),
               ),
-            ),
-            SvgPicture.asset(
-              'assets/yahoo-finance-icon.svg',
-              height: 18,
-            ),
-          ],
+              // Container(
+              //   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              //   decoration: BoxDecoration(
+              //     color: AppColors.surface,
+              //     borderRadius: BorderRadius.circular(6),
+              //     border: Border.all(
+              //       color: AppColors.surface,
+              //       width: 1,
+              //     ),
+              //   ),
+              //   child: SvgPicture.asset(
+              //     'assets/yahoo-finance-icon.svg',
+              //     height: 16,
+              //   ),
+              // ),
+            ],
+          ),
         ),
       ],
     );
+  }
+
+  Future<void> _launchYahooFinance() async {
+    final symbol = widget.ipo.symbol;
+    final url = Uri.parse('https://finance.yahoo.com/quote/$symbol.IS/');
+    try {
+      final launched = await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Bağlantı açılamadı: $url'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Bağlantı açılamadı: $url'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   /// Seçilen periyoda uygun olarak tooltip için tarih ve saat metni üretir
