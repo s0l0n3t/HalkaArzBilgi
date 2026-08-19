@@ -11,6 +11,7 @@ import 'package:halkaarzbilgi/features/notifications/notification_settings_scree
 import 'package:halkaarzbilgi/features/search/search_screen.dart';
 import 'package:halkaarzbilgi/features/stock_detail/stock_detail_screen.dart';
 import 'package:halkaarzbilgi/features/ipo_detail/ipo_detail_screen.dart';
+import 'package:halkaarzbilgi/features/portfolio/portfolio_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -62,6 +63,12 @@ final GoRouter appRouter = GoRouter(
             GoRoute(
               path: '/home',
               builder: (context, state) => const HomeScreen(),
+              routes: [
+                GoRoute(
+                  path: 'portfolio',
+                  builder: (context, state) => const PortfolioScreen(),
+                ),
+              ],
             ),
           ],
         ),

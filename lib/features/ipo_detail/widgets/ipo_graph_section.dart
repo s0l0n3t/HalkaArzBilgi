@@ -1,8 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:halkaarzbilgi/core/theme/app_colors.dart';
 import 'package:halkaarzbilgi/features/home/models/ipo_model.dart';
 import 'package:halkaarzbilgi/core/widgets/percentage_badge.dart';
 import 'package:halkaarzbilgi/features/ipo_detail/models/chart_data_model.dart';
