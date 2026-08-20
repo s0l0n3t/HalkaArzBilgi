@@ -11,13 +11,12 @@ class AccountCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userName = ref.watch(authProvider).userName;
-    final notifier = ref.read(watchlistMarkProvider.notifier);
-    // Watch the portfolio map to react to changes
-    ref.watch(watchlistMarkProvider);
+    final stats = ref.watch(portfolioStatsProvider);
 
-    final totalValue = notifier.totalPortfolioValue;
-    final totalGainLoss = notifier.totalGainLoss;
-    final totalPercent = notifier.totalGainLossPercent;
+    final totalValue = stats.fold<double>(0.0, (sum, item) => sum + item.totalCost);
+    final totalGainLoss = stats.fold<double>(0.0, (sum, item) => sum + item.totalGainLoss);
+    final totalPercent = totalValue == 0 ? 0.0 : (totalGainLoss / totalValue) * 100;
+
     final isGain = totalGainLoss >= 0;
 
     final changeColor =

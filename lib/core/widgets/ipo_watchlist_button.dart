@@ -84,6 +84,7 @@ class IpoWatchlistButton extends ConsumerWidget {
     );
 
     final lotController = TextEditingController();
+    final priceController = TextEditingController();
 
     showDialog(
       context: context,
@@ -93,7 +94,12 @@ class IpoWatchlistButton extends ConsumerWidget {
           builder: (context, setDialogState) {
             final lotText = lotController.text.trim();
             final lots = int.tryParse(lotText) ?? 0;
-            final totalCost = lots * ipo.price;
+            
+            final priceText = priceController.text.trim().replaceAll(',', '.');
+            final enteredPrice = double.tryParse(priceText);
+            final purchasePrice = enteredPrice ?? ipo.price;
+            
+            final totalCost = lots * purchasePrice;
 
             return Dialog(
               backgroundColor: const Color(0xFF1A1A1C),
@@ -149,6 +155,52 @@ class IpoWatchlistButton extends ConsumerWidget {
                         hintStyle: GoogleFonts.inter(
                           color: const Color(0xFF48484A),
                           fontSize: 16,
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFF111111),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(
+                              color: Color(0xFF2C2C2E), width: 0.5),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(
+                              color: Color(0xFF2C2C2E), width: 0.5),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(
+                              color: Color(0xFF00B856), width: 1),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Price input field
+                    Text(
+                      'Satın alınan fiyat (İsteğe bağlı)',
+                      style: GoogleFonts.inter(
+                        color: const Color(0xFF8E8E93),
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: priceController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 16,
+                      ),
+                      onChanged: (_) => setDialogState(() {}),
+                      decoration: InputDecoration(
+                        hintText: 'Halka arz fiyatı: ${ipo.price.toStringAsFixed(2).replaceAll('.', ',')} TL',
+                        hintStyle: GoogleFonts.inter(
+                          color: const Color(0xFF48484A),
+                          fontSize: 14,
                         ),
                         filled: true,
                         fillColor: const Color(0xFF111111),
@@ -245,11 +297,7 @@ class IpoWatchlistButton extends ConsumerWidget {
                                           symbol: ipo.symbol,
                                           companyName: ipo.companyName,
                                           lots: lots,
-                                          ipoPrice: ipo.price,
-                                          currentPrice: ipo.price,
-                                          change: ipo.change ?? 0,
-                                          changePercent:
-                                              ipo.changePercent ?? 0,
+                                          ipoPrice: purchasePrice,
                                         );
                                     Navigator.of(dialogContext).pop();
                                   }

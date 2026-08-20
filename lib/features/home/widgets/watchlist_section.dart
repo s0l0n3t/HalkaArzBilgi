@@ -10,8 +10,7 @@ class WatchlistSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final portfolio = ref.watch(watchlistMarkProvider);
-    final entries = portfolio.values.toList();
+    final entries = ref.watch(portfolioStatsProvider);
 
     if (entries.isEmpty) {
       return const SizedBox.shrink();
@@ -38,13 +37,15 @@ class WatchlistSection extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 12),
+
+        // List of tracked stocks
         ...List.generate(entries.length, (index) {
-          final entry = entries[index];
+          final stats = entries.elementAt(index);
           return Padding(
             padding: EdgeInsets.only(
               bottom: index < entries.length - 1 ? 12.0 : 0.0,
             ),
-            child: WatchlistItemFromPortfolio(entry: entry),
+            child: WatchlistItem(stats: stats),
           );
         }),
       ],

@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/features/home/models/stock_model.dart';
+import 'package:halkaarzbilgi/core/providers/watchlist_provider.dart';
 
 class StockDetailsTable extends StatelessWidget {
   final StockModel stock;
+  final UserPortfolioStats? portfolioStats;
 
-  const StockDetailsTable({super.key, required this.stock});
+  const StockDetailsTable({super.key, required this.stock, this.portfolioStats});
 
   @override
   Widget build(BuildContext context) {
-    final double totalValue = stock.lots * stock.currentPrice;
-    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -19,19 +19,27 @@ class StockDetailsTable extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildRow('Lot Sayısı', '${stock.lots}'),
-          const Divider(color: Color(0xFF333333), height: 24),
-          _buildRow('Maliyet', '${stock.costPrice.toStringAsFixed(2).replaceAll('.', ',')} TL'),
-          const Divider(color: Color(0xFF333333), height: 24),
-          _buildRow('Toplam Değer', '${totalValue.toStringAsFixed(2).replaceAll('.', ',')} TL'),
+          if (portfolioStats != null) ...[
+            _buildRow('Lot Sayısı', '${portfolioStats!.entry.lots}'),
+            const Divider(color: Color(0xFF333333), height: 24),
+            _buildRow('Maliyet', '${portfolioStats!.entry.costPrice.toStringAsFixed(2).replaceAll('.', ',')} TL'),
+            const Divider(color: Color(0xFF333333), height: 24),
+            _buildRow('Toplam Değer', '${portfolioStats!.totalValue.toStringAsFixed(2).replaceAll('.', ',')} TL'),
+            const Divider(color: Color(0xFF333333), height: 24),
+            _buildRow(
+              'Kar/Zarar (Kişisel)',
+              '${portfolioStats!.personalChange > 0 ? '+' : ''}${(portfolioStats!.totalGainLoss).toStringAsFixed(2).replaceAll('.', ',')} TL',
+              valueColor: portfolioStats!.isGain ? const Color(0xFF23A983) : const Color(0xFFFF3B30),
+            ),
+            const Divider(color: Color(0xFF333333), height: 24),
+          ],
+          _buildRow('Güncel Fiyat', '${stock.currentPrice.toStringAsFixed(2).replaceAll('.', ',')} TL'),
           const Divider(color: Color(0xFF333333), height: 24),
           _buildRow(
-            'Kar/Zarar',
-            '${stock.change > 0 ? '+' : ''}${stock.change.toStringAsFixed(2).replaceAll('.', ',')} TL',
+            'Günlük Değişim',
+            '${stock.changePercent > 0 ? '+' : ''}${stock.changePercent.toStringAsFixed(2).replaceAll('.', ',')}%',
             valueColor: stock.isGain ? const Color(0xFF23A983) : const Color(0xFFFF3B30),
           ),
-          const Divider(color: Color(0xFF333333), height: 24),
-          _buildRow('Halka Arz Tarihi', '-'),
         ],
       ),
     );

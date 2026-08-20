@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:halkaarzbilgi/features/ipo_detail/services/chart_data_service.dart';
+import 'package:halkaarzbilgi/features/ipo_detail/models/chart_data_model.dart';
 import 'package:halkaarzbilgi/features/home/models/stock_model.dart';
-
 /// Manages the set of symbols that have alerts (notifications) enabled.
 /// All stocks in the user's watchlist start with alerts active by default.
 class WatchlistNotifier extends StateNotifier<Set<String>> {
@@ -30,50 +31,69 @@ class UserPortfolioEntry {
   final String symbol;
   final String companyName;
   final int lots;
-  final double costPrice; // halka arz fiyatı (alış fiyatı)
-  final double currentPrice;
-  final double change; // TL fiyat değişimi
-  final double changePercent;
+  final double costPrice; // halka arz fiyatı veya alış fiyatı
 
   const UserPortfolioEntry({
     required this.symbol,
     required this.companyName,
     required this.lots,
     required this.costPrice,
+  });
+}
+
+/// Enriched stats that combine user's portfolio data with live market data.
+class UserPortfolioStats {
+  final UserPortfolioEntry entry;
+  final double currentPrice;
+
+  const UserPortfolioStats({
+    required this.entry,
     required this.currentPrice,
-    required this.change,
-    required this.changePercent,
   });
 
-  /// Toplam maliyet = lots * costPrice
-  double get totalCost => lots * costPrice;
+  /// Toplam maliyet
+  double get totalCost => entry.lots * entry.costPrice;
 
-  /// Toplam güncel değer = lots * currentPrice
-  double get totalValue => lots * currentPrice;
+  /// Toplam güncel değer
+  double get totalValue => entry.lots * currentPrice;
 
-  /// Toplam TL kar/zarar = lots * change
-  double get totalGainLoss => lots * change;
+  /// Birim kâr/zarar (TL)
+  double get personalChange => currentPrice - entry.costPrice;
 
-  bool get isGain => change >= 0;
+  /// Toplam TL kâr/zarar
+  double get totalGainLoss => entry.lots * personalChange;
+
+  /// Yüzdelik kişisel kâr/zarar
+  double get personalChangePercent {
+    if (entry.costPrice == 0) return 0;
+    return (personalChange / entry.costPrice) * 100;
+  }
+
+  bool get isGain => personalChange >= 0;
 }
 
 /// Manages the user's portfolio (watchlist with lot data).
-/// State is a `Map<String, UserPortfolioEntry>` keyed by symbol.
-class WatchlistMarkNotifier
-    extends StateNotifier<Map<String, UserPortfolioEntry>> {
+class WatchlistMarkNotifier extends StateNotifier<Map<String, UserPortfolioEntry>> {
   WatchlistMarkNotifier()
       : super({
-          // Seed from mock watchlist data
-          for (final s in StockModel.mockWatchlist)
-            s.symbol: UserPortfolioEntry(
-              symbol: s.symbol,
-              companyName: s.companyName,
-              lots: s.lots,
-              costPrice: s.costPrice,
-              currentPrice: s.currentPrice,
-              change: s.change,
-              changePercent: s.changePercent,
-            ),
+          'ATATR': const UserPortfolioEntry(
+            symbol: 'ATATR',
+            companyName: 'Ata Turizm İşletmecilik',
+            lots: 65,
+            costPrice: 77.36,
+          ),
+          'SARAE': const UserPortfolioEntry(
+            symbol: 'SARAE',
+            companyName: 'Saray Enerji',
+            lots: 35,
+            costPrice: 38.00,
+          ),
+          'AAGYO': const UserPortfolioEntry(
+            symbol: 'AAGYO',
+            companyName: 'AA Gayrimenkul Yatırım',
+            lots: 65,
+            costPrice: 50.00,
+          ),
         });
 
   bool isWatchlisted(String symbol) => state.containsKey(symbol);
@@ -81,15 +101,11 @@ class WatchlistMarkNotifier
   UserPortfolioEntry? getEntry(String symbol) => state[symbol];
 
   /// Add a stock to the portfolio with the given lot count.
-  /// Uses IpoModel data to compute cost/current price/change.
   void addStock({
     required String symbol,
     required String companyName,
     required int lots,
     required double ipoPrice,
-    required double currentPrice,
-    required double change,
-    required double changePercent,
   }) {
     state = {
       ...state,
@@ -98,9 +114,6 @@ class WatchlistMarkNotifier
         companyName: companyName,
         lots: lots,
         costPrice: ipoPrice,
-        currentPrice: currentPrice,
-        change: change,
-        changePercent: changePercent,
       ),
     };
   }
@@ -109,25 +122,28 @@ class WatchlistMarkNotifier
   void removeStock(String symbol) {
     state = Map.from(state)..remove(symbol);
   }
-
-  /// Total portfolio value across all entries.
-  double get totalPortfolioValue =>
-      state.values.fold(0.0, (sum, e) => sum + e.totalCost);
-
-  /// Total gain/loss in TL across all entries.
-  double get totalGainLoss =>
-      state.values.fold(0.0, (sum, e) => sum + e.totalGainLoss);
-
-  /// Total gain/loss percentage (weighted).
-  double get totalGainLossPercent {
-    final total = totalPortfolioValue;
-    if (total == 0) return 0;
-    return (totalGainLoss / total) * 100;
-  }
 }
 
 final watchlistMarkProvider = StateNotifierProvider<WatchlistMarkNotifier,
     Map<String, UserPortfolioEntry>>((ref) {
   return WatchlistMarkNotifier();
+});
+
+/// Combined provider that merges UserPortfolioEntry with the real-time StockModel price.
+final portfolioStatsProvider = Provider<List<UserPortfolioStats>>((ref) {
+  final portfolioMap = ref.watch(watchlistMarkProvider);
+  // Use chart service to get deterministic latest price based on entry's cost price
+  final chartService = MockChartDataService();
+
+  return portfolioMap.values.map((entry) {
+    // Generate daily chart data using the entry's cost price as the base
+    final chartData = chartService.getChartData(
+      symbol: entry.symbol,
+      period: ChartPeriod.day,
+      basePrice: entry.costPrice,
+    );
+    final latestPrice = chartData.lastPrice;
+    return UserPortfolioStats(entry: entry, currentPrice: latestPrice);
+  }).toList();
 });
 

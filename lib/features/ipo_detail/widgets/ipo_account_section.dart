@@ -16,15 +16,16 @@ class IpoAccountSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final portfolio = ref.watch(watchlistMarkProvider);
-    final entry = portfolio[symbol];
+    final portfolioStats = ref.watch(portfolioStatsProvider);
+    final statsIndex = portfolioStats.indexWhere((s) => s.entry.symbol == symbol);
 
     // If not in portfolio, show nothing
-    if (entry == null) {
+    if (statsIndex == -1) {
       return const SizedBox.shrink();
     }
 
-    final isGain = entry.isGain;
+    final stats = portfolioStats[statsIndex];
+    final isGain = stats.isGain;
     final changeColor =
         isGain ? const Color(0xFF23A983) : const Color(0xFFFF3B30);
     final changePrefix = isGain ? '+' : '';
@@ -90,7 +91,7 @@ class IpoAccountSection extends ConsumerWidget {
                       text: TextSpan(
                         children: [
                           TextSpan(
-                            text: '${entry.lots}',
+                            text: '${stats.entry.lots}',
                             style: GoogleFonts.inter(
                               color: Colors.white,
                               fontSize: 18,
@@ -118,7 +119,7 @@ class IpoAccountSection extends ConsumerWidget {
                           text: TextSpan(
                             children: [
                               TextSpan(
-                                text: entry.totalCost
+                                text: stats.totalCost
                                     .toStringAsFixed(0)
                                     .replaceAllMapped(
                                       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
@@ -143,7 +144,7 @@ class IpoAccountSection extends ConsumerWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '$changePrefix${entry.totalGainLoss.toStringAsFixed(2).replaceAll('.', ',')} TL',
+                          '$changePrefix${stats.totalGainLoss.toStringAsFixed(2).replaceAll('.', ',')} TL',
                           style: GoogleFonts.inter(
                             color: changeColor,
                             fontSize: 14,

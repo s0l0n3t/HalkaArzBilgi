@@ -4,6 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/core/theme/app_colors.dart';
 import 'package:halkaarzbilgi/core/widgets/percentage_badge.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:halkaarzbilgi/core/providers/market_provider.dart';
+import 'package:halkaarzbilgi/features/home/models/stock_model.dart';
+
 enum HeatmapTileSize { large, medium, small, mini, micro }
 
 enum StockFilter { all, topGainers, topLosers }
@@ -15,6 +19,7 @@ class HeatmapTileItem {
   final HeatmapTileSize size;
   final bool isGain;
   final double price;
+  final bool isEmpty; // Pad for missing data
 
   const HeatmapTileItem({
     required this.symbol,
@@ -23,201 +28,32 @@ class HeatmapTileItem {
     required this.size,
     required this.isGain,
     required this.price,
+    this.isEmpty = false,
   });
+
+  factory HeatmapTileItem.empty() => const HeatmapTileItem(
+        symbol: '',
+        companyName: '',
+        changePercent: 0,
+        size: HeatmapTileSize.micro,
+        isGain: true,
+        price: 0,
+        isEmpty: true,
+      );
 }
 
-class SearchScreen extends StatefulWidget {
+class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _SearchScreenState extends ConsumerState<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   String _searchQuery = '';
   StockFilter _selectedFilter = StockFilter.all;
-
-  // Tüm hisselerin veri havuzu
-  static const List<HeatmapTileItem> _allStocks = [
-    HeatmapTileItem(
-      symbol: 'SARAE',
-      companyName: 'Saray Enerji',
-      changePercent: 39.92,
-      size: HeatmapTileSize.large,
-      isGain: true,
-      price: 35.50,
-    ),
-    HeatmapTileItem(
-      symbol: 'ATATR',
-      companyName: 'Ata Turizm İşletmecilik',
-      changePercent: 34.42,
-      size: HeatmapTileSize.large,
-      isGain: true,
-      price: 65.50,
-    ),
-    HeatmapTileItem(
-      symbol: 'AAGYO',
-      companyName: 'AA Gayrimenkul Yatırım',
-      changePercent: 134.23,
-      size: HeatmapTileSize.medium,
-      isGain: true,
-      price: 76.50,
-    ),
-    HeatmapTileItem(
-      symbol: 'KLNMA',
-      companyName: 'Kalınma Holding',
-      changePercent: 45.33,
-      size: HeatmapTileSize.medium,
-      isGain: true,
-      price: 22.80,
-    ),
-    HeatmapTileItem(
-      symbol: 'BTCTR',
-      companyName: 'Bitay Kripto Teknoloji',
-      changePercent: 44.12,
-      size: HeatmapTileSize.medium,
-      isGain: true,
-      price: 48.00,
-    ),
-    HeatmapTileItem(
-      symbol: 'YLDZE',
-      companyName: 'Yıldız Enerji A.Ş.',
-      changePercent: 7.98,
-      size: HeatmapTileSize.medium,
-      isGain: true,
-      price: 17.40,
-    ),
-    HeatmapTileItem(
-      symbol: 'MRKEZ',
-      companyName: 'Merkez Yapı Endüstri',
-      changePercent: 57.16,
-      size: HeatmapTileSize.medium,
-      isGain: true,
-      price: 9.60,
-    ),
-    HeatmapTileItem(
-      symbol: 'DENIZ',
-      companyName: 'Deniz Lojistik Hizmetleri',
-      changePercent: 15.22,
-      size: HeatmapTileSize.medium,
-      isGain: true,
-      price: 31.20,
-    ),
-    HeatmapTileItem(
-      symbol: 'KCHOL',
-      companyName: 'Koç Holding',
-      changePercent: 47.69,
-      size: HeatmapTileSize.medium,
-      isGain: true,
-      price: 185.20,
-    ),
-    HeatmapTileItem(
-      symbol: 'THYAO',
-      companyName: 'Türk Hava Yolları',
-      changePercent: 15.57,
-      size: HeatmapTileSize.medium,
-      isGain: true,
-      price: 298.50,
-    ),
-    HeatmapTileItem(
-      symbol: 'TUPRS',
-      companyName: 'Tüpraş',
-      changePercent: -5.30,
-      size: HeatmapTileSize.small,
-      isGain: false,
-      price: 164.70,
-    ),
-    HeatmapTileItem(
-      symbol: 'ASELS',
-      companyName: 'Aselsan',
-      changePercent: 42.51,
-      size: HeatmapTileSize.small,
-      isGain: true,
-      price: 62.40,
-    ),
-    HeatmapTileItem(
-      symbol: 'EREGL',
-      companyName: 'Ereğli Demir Çelik',
-      changePercent: -9.19,
-      size: HeatmapTileSize.small,
-      isGain: false,
-      price: 49.30,
-    ),
-    HeatmapTileItem(
-      symbol: 'BIMAS',
-      companyName: 'BİM Mağazalar',
-      changePercent: 80.91,
-      size: HeatmapTileSize.small,
-      isGain: true,
-      price: 480.00,
-    ),
-    HeatmapTileItem(
-      symbol: 'GARAN',
-      companyName: 'Garanti BBVA',
-      changePercent: -4.15,
-      size: HeatmapTileSize.small,
-      isGain: false,
-      price: 112.40,
-    ),
-    HeatmapTileItem(
-      symbol: 'SISE',
-      companyName: 'Şişecam',
-      changePercent: 12.30,
-      size: HeatmapTileSize.mini,
-      isGain: true,
-      price: 46.80,
-    ),
-    HeatmapTileItem(
-      symbol: 'SAHOL',
-      companyName: 'Sabancı Holding',
-      changePercent: -2.80,
-      size: HeatmapTileSize.mini,
-      isGain: false,
-      price: 84.10,
-    ),
-    HeatmapTileItem(
-      symbol: 'PGSUS',
-      companyName: 'Pegasus Hava Taşımacılığı',
-      changePercent: 18.40,
-      size: HeatmapTileSize.mini,
-      isGain: true,
-      price: 232.00,
-    ),
-    HeatmapTileItem(
-      symbol: 'FROTO',
-      companyName: 'Ford Otosan',
-      changePercent: -6.50,
-      size: HeatmapTileSize.mini,
-      isGain: false,
-      price: 1045.00,
-    ),
-    HeatmapTileItem(
-      symbol: 'KOZAL',
-      companyName: 'Koza Altın',
-      changePercent: 6.20,
-      size: HeatmapTileSize.mini,
-      isGain: true,
-      price: 21.60,
-    ),
-    HeatmapTileItem(
-      symbol: 'PETKM',
-      companyName: 'Petkim Petrokimya',
-      changePercent: -3.75,
-      size: HeatmapTileSize.micro,
-      isGain: false,
-      price: 19.85,
-    ),
-    HeatmapTileItem(
-      symbol: 'AKBNK',
-      companyName: 'Akbank',
-      changePercent: 8.90,
-      size: HeatmapTileSize.micro,
-      isGain: true,
-      price: 53.20,
-    ),
-  ];
 
   @override
   void initState() {
@@ -236,10 +72,18 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-  List<HeatmapTileItem> get _filteredStocks {
-    var list = List<HeatmapTileItem>.from(_allStocks);
+  List<HeatmapTileItem> _getMappedStocks(List<StockModel> rawStocks) {
+    // 1. Convert to HeatmapTileItem
+    var list = rawStocks.map((s) => HeatmapTileItem(
+      symbol: s.symbol,
+      companyName: s.companyName,
+      changePercent: s.changePercent, // Uses the graph percentage
+      size: HeatmapTileSize.medium, // Temp size, overridden by layout
+      isGain: s.isGain,
+      price: s.currentPrice,
+    )).toList();
 
-    // Apply Filter
+    // 2. Apply Filter
     if (_selectedFilter == StockFilter.topGainers) {
       list = list.where((s) => s.isGain).toList()
         ..sort((a, b) => b.changePercent.compareTo(a.changePercent));
@@ -248,7 +92,7 @@ class _SearchScreenState extends State<SearchScreen> {
         ..sort((a, b) => a.changePercent.compareTo(b.changePercent));
     }
 
-    // Apply Search Query
+    // 3. Apply Search Query
     if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toUpperCase();
       list = list.where((stock) {
@@ -258,10 +102,18 @@ class _SearchScreenState extends State<SearchScreen> {
       }).toList();
     }
 
+    // 4. Pad to exactly 22 items for the hardcoded grid
+    // In a real squarified treemap, the layout handles N items.
+    // For this specific 22-slot TradingView clone layout:
+    while (list.length < 22) {
+      list.add(HeatmapTileItem.empty());
+    }
+
     return list;
   }
 
   void _onStockTap(String symbol) {
+    if (symbol.isEmpty) return; // Boş (pad) blok tıklandığında yoksay
     context.push('/ipo/$symbol');
   }
 
@@ -407,6 +259,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final isSearching = _searchQuery.isNotEmpty;
+    final asyncStocks = ref.watch(allMarketStocksProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -459,10 +312,11 @@ class _SearchScreenState extends State<SearchScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 12),
 
-            // ── 2. Başlık: Sola Yaslı Büyük "Hisse Senetleri" ─────────
+            // ── 2. Başlık: Hisse Senetleri ──
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
                 'Hisse Senetleri',
                 style: GoogleFonts.inter(
@@ -473,9 +327,9 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
-            // ── 3. Arama Kutusu (Pill Search Bar - Ferah Boşluklar) ────
+            // ── 3. Arama Çubuğu (Pill Shape) ──
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Container(
@@ -484,59 +338,79 @@ class _SearchScreenState extends State<SearchScreen> {
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: _focusNode.hasFocus
-                        ? AppColors.primaryGreen
-                        : AppColors.border,
-                    width: 0.8,
+                    color: AppColors.border,
+                    width: 0.5,
                   ),
                 ),
-                child: TextField(
-                  controller: _searchController,
-                  focusNode: _focusNode,
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  cursorColor: AppColors.primaryGreen,
-                  decoration: InputDecoration(
-                    hintText: 'SARAE.IS veya şirket ara...',
-                    hintStyle: GoogleFonts.inter(
-                      color: AppColors.textSecondary,
-                      fontSize: 15,
-                    ),
-                    prefixIcon: const Icon(
-                      Icons.search,
+                child: Row(
+                  children: [
+                    const SizedBox(width: 16),
+                    const Icon(
+                      Icons.search_rounded,
                       color: AppColors.textSecondary,
                       size: 22,
                     ),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(
-                              Icons.close,
-                              color: AppColors.textSecondary,
-                              size: 18,
-                            ),
-                            onPressed: () {
-                              _searchController.clear();
-                              FocusScope.of(context).unfocus();
-                            },
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    contentPadding:
-                        const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        focusNode: _focusNode,
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          hintText: 'Hisse veya şirket adı ara...',
+                          hintStyle: GoogleFonts.inter(
+                            color: AppColors.textSecondary,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (_searchQuery.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          color: AppColors.textSecondary,
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          _searchController.clear();
+                          _focusNode.unfocus();
+                        },
+                      ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
-            // ── 3. İçerik Alanı: Autocomplete Listesi VEYA Mozaik Isı Haritası ──
+            // ── 4. Dinamik İçerik (AsyncValue Yükleme, Hata, Veri Durumları) ──
             Expanded(
-              child: isSearching
-                  ? _buildAutocompleteResults()
-                  : _buildAdvancedHeatmap(),
+              child: asyncStocks.when(
+                loading: () => const Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.primaryGreen,
+                  ),
+                ),
+                error: (err, stack) => Center(
+                  child: Text(
+                    'Veriler yüklenirken hata oluştu: $err',
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                data: (rawStocks) {
+                  final mappedStocks = _getMappedStocks(rawStocks);
+
+                  if (isSearching) {
+                    return _buildListView(mappedStocks);
+                  }
+                  return _buildAdvancedHeatmap(mappedStocks);
+                },
+              ),
             ),
           ],
         ),
@@ -544,52 +418,49 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  // ── Otomatik Tamamlama (Autocomplete) Öneri Listesi ────────────────
-  Widget _buildAutocompleteResults() {
-    final results = _filteredStocks;
-
-    if (results.isEmpty) {
+  // ── Arama ve Filtreleme Sonuçları (Liste Görünümü) ──
+  Widget _buildListView(List<HeatmapTileItem> results) {
+    if (results.isEmpty || (results.every((s) => s.isEmpty))) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.search_off_rounded,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.search_off_rounded,
+              color: AppColors.textSecondary,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Sonuç bulunamadı',
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Başka bir arama yapmayı deneyin',
+              style: GoogleFonts.inter(
                 color: AppColors.textSecondary,
-                size: 48,
+                fontSize: 13,
               ),
-              const SizedBox(height: 12),
-              Text(
-                '"$_searchQuery" için sonuç bulunamadı',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Farklı bir hisse kodu veya şirket adı deneyin.',
-                style: GoogleFonts.inter(
-                  color: AppColors.textSecondary,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }
 
+    // Yalnızca dolu (empty pad olmayan) hisseleri göster
+    final validResults = results.where((s) => !s.isEmpty).toList();
+
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      itemCount: results.length,
+      itemCount: validResults.length,
       separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
-        final stock = results[index];
+        final stock = validResults[index];
         return InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () => _onStockTap(stock.symbol),
@@ -659,7 +530,7 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   // ── Gelişmiş Mozaik Isı Haritası (TradingView / Görsel 3 Treemap) ──
-  Widget _buildAdvancedHeatmap() {
+  Widget _buildAdvancedHeatmap(List<HeatmapTileItem> items) {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
       child: Column(
@@ -677,7 +548,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       // SARAE (+39.92%)
                       Expanded(
                         child: _buildHeatmapTile(
-                          stock: _allStocks[0],
+                          stock: items[0],
                           size: HeatmapTileSize.large,
                         ),
                       ),
@@ -685,7 +556,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       // ATATR (+34.42%)
                       Expanded(
                         child: _buildHeatmapTile(
-                          stock: _allStocks[1],
+                          stock: items[1],
                           size: HeatmapTileSize.large,
                         ),
                       ),
@@ -707,7 +578,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             Expanded(
                               flex: 6,
                               child: _buildHeatmapTile(
-                                stock: _allStocks[2], // AAGYO (+134.23%)
+                                stock: items[2], // AAGYO (+134.23%)
                                 size: HeatmapTileSize.medium,
                               ),
                             ),
@@ -715,7 +586,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             Expanded(
                               flex: 5,
                               child: _buildHeatmapTile(
-                                stock: _allStocks[3], // KLNMA (+45.33%)
+                                stock: items[3], // KLNMA (+45.33%)
                                 size: HeatmapTileSize.medium,
                               ),
                             ),
@@ -731,21 +602,21 @@ class _SearchScreenState extends State<SearchScreen> {
                           children: [
                             Expanded(
                               child: _buildHeatmapTile(
-                                stock: _allStocks[4], // BTCTR
+                                stock: items[4], // BTCTR
                                 size: HeatmapTileSize.medium,
                               ),
                             ),
                             const SizedBox(width: 2),
                             Expanded(
                               child: _buildHeatmapTile(
-                                stock: _allStocks[5], // YLDZE
+                                stock: items[5], // YLDZE
                                 size: HeatmapTileSize.medium,
                               ),
                             ),
                             const SizedBox(width: 2),
                             Expanded(
                               child: _buildHeatmapTile(
-                                stock: _allStocks[6], // MRKEZ
+                                stock: items[6], // MRKEZ
                                 size: HeatmapTileSize.medium,
                               ),
                             ),
@@ -761,21 +632,21 @@ class _SearchScreenState extends State<SearchScreen> {
                           children: [
                             Expanded(
                               child: _buildHeatmapTile(
-                                stock: _allStocks[7], // DENIZ
+                                stock: items[7], // DENIZ
                                 size: HeatmapTileSize.medium,
                               ),
                             ),
                             const SizedBox(width: 2),
                             Expanded(
                               child: _buildHeatmapTile(
-                                stock: _allStocks[8], // KCHOL
+                                stock: items[8], // KCHOL
                                 size: HeatmapTileSize.medium,
                               ),
                             ),
                             const SizedBox(width: 2),
                             Expanded(
                               child: _buildHeatmapTile(
-                                stock: _allStocks[9], // THYAO
+                                stock: items[9], // THYAO
                                 size: HeatmapTileSize.medium,
                               ),
                             ),
@@ -796,21 +667,21 @@ class _SearchScreenState extends State<SearchScreen> {
                                 children: [
                                   Expanded(
                                     child: _buildHeatmapTile(
-                                      stock: _allStocks[10], // TUPRS
+                                      stock: items[10], // TUPRS
                                       size: HeatmapTileSize.small,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
                                   Expanded(
                                     child: _buildHeatmapTile(
-                                      stock: _allStocks[11], // ASELS
+                                      stock: items[11], // ASELS
                                       size: HeatmapTileSize.small,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
                                   Expanded(
                                     child: _buildHeatmapTile(
-                                      stock: _allStocks[12], // EREGL
+                                      stock: items[12], // EREGL
                                       size: HeatmapTileSize.small,
                                     ),
                                   ),
@@ -831,14 +702,14 @@ class _SearchScreenState extends State<SearchScreen> {
                                       children: [
                                         Expanded(
                                           child: _buildHeatmapTile(
-                                            stock: _allStocks[13], // BIMAS (+80.91%)
+                                            stock: items[13], // BIMAS (+80.91%)
                                             size: HeatmapTileSize.small,
                                           ),
                                         ),
                                         const SizedBox(width: 2),
                                         Expanded(
                                           child: _buildHeatmapTile(
-                                            stock: _allStocks[14], // GARAN (-4.15%)
+                                            stock: items[14], // GARAN (-4.15%)
                                             size: HeatmapTileSize.small,
                                           ),
                                         ),
@@ -854,21 +725,21 @@ class _SearchScreenState extends State<SearchScreen> {
                                       children: [
                                         Expanded(
                                           child: _buildHeatmapTile(
-                                            stock: _allStocks[15], // SISE
+                                            stock: items[15], // SISE
                                             size: HeatmapTileSize.mini,
                                           ),
                                         ),
                                         const SizedBox(width: 2),
                                         Expanded(
                                           child: _buildHeatmapTile(
-                                            stock: _allStocks[16], // SAHOL
+                                            stock: items[16], // SAHOL
                                             size: HeatmapTileSize.mini,
                                           ),
                                         ),
                                         const SizedBox(width: 2),
                                         Expanded(
                                           child: _buildHeatmapTile(
-                                            stock: _allStocks[17], // PGSUS
+                                            stock: items[17], // PGSUS
                                             size: HeatmapTileSize.mini,
                                           ),
                                         ),
@@ -884,28 +755,28 @@ class _SearchScreenState extends State<SearchScreen> {
                                       children: [
                                         Expanded(
                                           child: _buildHeatmapTile(
-                                            stock: _allStocks[18], // FROTO
+                                            stock: items[18], // FROTO
                                             size: HeatmapTileSize.micro,
                                           ),
                                         ),
                                         const SizedBox(width: 2),
                                         Expanded(
                                           child: _buildHeatmapTile(
-                                            stock: _allStocks[19], // KOZAL
+                                            stock: items[19], // KOZAL
                                             size: HeatmapTileSize.micro,
                                           ),
                                         ),
                                         const SizedBox(width: 2),
                                         Expanded(
                                           child: _buildHeatmapTile(
-                                            stock: _allStocks[20], // PETKM
+                                            stock: items[20], // PETKM
                                             size: HeatmapTileSize.micro,
                                           ),
                                         ),
                                         const SizedBox(width: 2),
                                         Expanded(
                                           child: _buildHeatmapTile(
-                                            stock: _allStocks[21], // AKBNK
+                                            stock: items[21], // AKBNK
                                             size: HeatmapTileSize.micro,
                                           ),
                                         ),

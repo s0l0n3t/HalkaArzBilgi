@@ -23,8 +23,7 @@ class PortfolioScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final portfolio = ref.watch(watchlistMarkProvider);
-    final entries = portfolio.values.toList();
+    final entries = ref.watch(portfolioStatsProvider);
 
     final totalValue = entries.fold<double>(0.0, (sum, e) => sum + e.totalValue);
     final totalGainLoss = entries.fold<double>(0.0, (sum, e) => sum + e.totalGainLoss);
@@ -95,12 +94,12 @@ class PortfolioScreen extends ConsumerWidget {
 
                     // ── 3. Hisse Kartları Listesi ────────────────────────
                     ...List.generate(entries.length, (index) {
-                      final entry = entries[index];
+                      final stats = entries[index];
                       return Padding(
                         padding: EdgeInsets.only(
                           bottom: index < entries.length - 1 ? 12.0 : 0.0,
                         ),
-                        child: WatchlistItemFromPortfolio(entry: entry),
+                        child: WatchlistItem(stats: stats),
                       );
                     }),
                     const SizedBox(height: 24),
@@ -112,7 +111,7 @@ class PortfolioScreen extends ConsumerWidget {
   }
 
   Widget _buildDonutChartCard({
-    required List<UserPortfolioEntry> entries,
+    required List<UserPortfolioStats> entries,
     required double totalValue,
     required double totalGainLoss,
     required double gainLossPercent,
@@ -229,7 +228,7 @@ class PortfolioScreen extends ConsumerWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    item.symbol,
+                    item.entry.symbol,
                     style: GoogleFonts.inter(
                       color: Colors.white,
                       fontSize: 13,
