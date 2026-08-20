@@ -93,13 +93,25 @@ class IpoWatchlistButton extends ConsumerWidget {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             final lotText = lotController.text.trim();
-            final lots = int.tryParse(lotText) ?? 0;
-            
+            final enteredLots = int.tryParse(lotText);
+            final bool isLotEntered = lotText.isNotEmpty;
+            final bool isLotValid = enteredLots != null && enteredLots > 0;
+            final bool isLotError = isLotEntered && !isLotValid;
+
             final priceText = priceController.text.trim().replaceAll(',', '.');
             final enteredPrice = double.tryParse(priceText);
-            final purchasePrice = enteredPrice ?? ipo.price;
-            
-            final totalCost = lots * purchasePrice;
+            final bool isPriceEntered = priceText.isNotEmpty;
+            final bool isPriceValid =
+                !isPriceEntered || (enteredPrice != null && enteredPrice > 0);
+            final bool isPriceError = isPriceEntered && !isPriceValid;
+
+            final double purchasePrice =
+                (isPriceEntered && enteredPrice != null && enteredPrice > 0)
+                    ? enteredPrice
+                    : ipo.price;
+            final double totalCost =
+                isLotValid ? (enteredLots * purchasePrice) : 0.0;
+            final bool isFormValid = isLotValid && isPriceValid;
 
             return Dialog(
               backgroundColor: const Color(0xFF1A1A1C),
@@ -160,23 +172,45 @@ class IpoWatchlistButton extends ConsumerWidget {
                         fillColor: const Color(0xFF111111),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(
-                              color: Color(0xFF2C2C2E), width: 0.5),
+                          borderSide: BorderSide(
+                            color: isLotError
+                                ? const Color(0xFFFF3B30)
+                                : const Color(0xFF2C2C2E),
+                            width: isLotError ? 1 : 0.5,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(
-                              color: Color(0xFF2C2C2E), width: 0.5),
+                          borderSide: BorderSide(
+                            color: isLotError
+                                ? const Color(0xFFFF3B30)
+                                : const Color(0xFF2C2C2E),
+                            width: isLotError ? 1 : 0.5,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(
-                              color: Color(0xFF00B856), width: 1),
+                          borderSide: BorderSide(
+                            color: isLotError
+                                ? const Color(0xFFFF3B30)
+                                : const Color(0xFF00B856),
+                            width: 1,
+                          ),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 14),
                       ),
                     ),
+                    if (isLotError) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Lot miktarı 0\'dan büyük olmalıdır',
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFFFF3B30),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
 
                     // Price input field
@@ -190,14 +224,19 @@ class IpoWatchlistButton extends ConsumerWidget {
                     const SizedBox(height: 8),
                     TextField(
                       controller: priceController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                      ],
                       style: GoogleFonts.inter(
                         color: Colors.white,
                         fontSize: 16,
                       ),
                       onChanged: (_) => setDialogState(() {}),
                       decoration: InputDecoration(
-                        hintText: 'Halka arz fiyatı: ${ipo.price.toStringAsFixed(2).replaceAll('.', ',')} TL',
+                        hintText:
+                            'Halka arz fiyatı: ${ipo.price.toStringAsFixed(2).replaceAll('.', ',')} TL',
                         hintStyle: GoogleFonts.inter(
                           color: const Color(0xFF48484A),
                           fontSize: 14,
@@ -206,27 +245,49 @@ class IpoWatchlistButton extends ConsumerWidget {
                         fillColor: const Color(0xFF111111),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(
-                              color: Color(0xFF2C2C2E), width: 0.5),
+                          borderSide: BorderSide(
+                            color: isPriceError
+                                ? const Color(0xFFFF3B30)
+                                : const Color(0xFF2C2C2E),
+                            width: isPriceError ? 1 : 0.5,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(
-                              color: Color(0xFF2C2C2E), width: 0.5),
+                          borderSide: BorderSide(
+                            color: isPriceError
+                                ? const Color(0xFFFF3B30)
+                                : const Color(0xFF2C2C2E),
+                            width: isPriceError ? 1 : 0.5,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(
-                              color: Color(0xFF00B856), width: 1),
+                          borderSide: BorderSide(
+                            color: isPriceError
+                                ? const Color(0xFFFF3B30)
+                                : const Color(0xFF00B856),
+                            width: 1,
+                          ),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 14),
                       ),
                     ),
+                    if (isPriceError) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Fiyat 0\'dan büyük olmalıdır',
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFFFF3B30),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
 
                     // Cost preview
-                    if (lots > 0) ...[
+                    if (isFormValid) ...[
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
@@ -288,7 +349,7 @@ class IpoWatchlistButton extends ConsumerWidget {
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: lots > 0
+                            onPressed: isFormValid
                                 ? () {
                                     ref
                                         .read(
@@ -296,7 +357,7 @@ class IpoWatchlistButton extends ConsumerWidget {
                                         .addStock(
                                           symbol: ipo.symbol,
                                           companyName: ipo.companyName,
-                                          lots: lots,
+                                          lots: enteredLots,
                                           ipoPrice: purchasePrice,
                                         );
                                     Navigator.of(dialogContext).pop();
@@ -315,7 +376,7 @@ class IpoWatchlistButton extends ConsumerWidget {
                             child: Text(
                               'Onayla',
                               style: GoogleFonts.inter(
-                                color: lots > 0
+                                color: isFormValid
                                     ? Colors.white
                                     : Colors.white.withValues(alpha: 0.5),
                                 fontSize: 15,
