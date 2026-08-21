@@ -37,7 +37,7 @@ class StockDetailsTable extends StatelessWidget {
           const Divider(color: Color(0xFF333333), height: 24),
           _buildRow(
             'Günlük Değişim',
-            '${stock.changePercent > 0 ? '+' : ''}${stock.changePercent.toStringAsFixed(2).replaceAll('.', ',')}%',
+            '${stock.isGain ? '%' : '-%'}${stock.changePercent.abs().toStringAsFixed(2).replaceAll('.', ',')}',
             valueColor: stock.isGain ? const Color(0xFF23A983) : const Color(0xFFFF3B30),
           ),
         ],

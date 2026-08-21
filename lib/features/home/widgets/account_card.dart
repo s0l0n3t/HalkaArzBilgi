@@ -72,7 +72,7 @@ class AccountCard extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                '$changePrefix${totalPercent.toStringAsFixed(2)}%',
+                '${isGain ? '%' : '-%'}${totalPercent.abs().toStringAsFixed(2).replaceAll('.', ',')}',
                 style: GoogleFonts.inter(
                   color: Colors.white,
                   fontSize: 12,

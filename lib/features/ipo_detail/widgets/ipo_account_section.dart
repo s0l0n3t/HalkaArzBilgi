@@ -69,18 +69,31 @@ class IpoAccountSection extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                // "Satın alınan hisse" subtitle — Inter regular
-                Text(
-                  'Satın alınan hisse',
-                  style: GoogleFonts.inter(
-                    color: const Color(0xFF8E8E93),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w400,
-                    height: 1.2,
-                  ),
+                // Subtitle + Percentage on the same row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Satın alınan hisse',
+                      style: GoogleFonts.inter(
+                        color: const Color(0xFF8E8E93),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        height: 1.2,
+                      ),
+                    ),
+                    Text(//% gain/loss
+                      '${isGain ? '%' : '-%'}${stats.personalChangePercent.abs().toStringAsFixed(2).replaceAll('.', ',')}',
+                      style: GoogleFonts.inter(
+                        color: changeColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 6),
-                // Lot count + cost and gain/loss on the same row
+                // Lot count + cost and gain/loss on the same baseline
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -109,7 +122,7 @@ class IpoAccountSection extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    // Total cost + gain/loss inline
+                    // Total cost + gain/loss inline on the exact same baseline
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.baseline,

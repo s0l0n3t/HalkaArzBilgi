@@ -851,7 +851,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ),
               const SizedBox(height: 2),
               Text(
-                '${stock.isGain ? '+' : ''}${stock.changePercent.toStringAsFixed(2)}%',
+                '${stock.isGain ? '%' : '-%'}${stock.changePercent.abs().toStringAsFixed(2).replaceAll('.', ',')}',
                 maxLines: 1,
                 style: GoogleFonts.inter(
                   color: Colors.white,
@@ -883,7 +883,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ),
               const SizedBox(height: 1),
               Text(
-                '${stock.isGain ? '+' : ''}${stock.changePercent.toStringAsFixed(2)}%',
+                '${stock.isGain ? '%' : '-%'}${stock.changePercent.abs().toStringAsFixed(2).replaceAll('.', ',')}',
                 maxLines: 1,
                 style: GoogleFonts.inter(
                   color: Colors.white,
@@ -915,7 +915,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ),
               const SizedBox(height: 1),
               Text(
-                '${stock.isGain ? '+' : ''}${stock.changePercent.toStringAsFixed(2)}%',
+                '${stock.isGain ? '%' : '-%'}${stock.changePercent.abs().toStringAsFixed(2).replaceAll('.', ',')}',
                 maxLines: 1,
                 style: GoogleFonts.inter(
                   color: Colors.white,

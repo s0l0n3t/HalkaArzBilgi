@@ -16,7 +16,7 @@ class PercentageBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
-        '${isGain ? '+' : ''}${percent.toStringAsFixed(2)}%',
+        '${isGain ? '%' : '-%'}${percent.abs().toStringAsFixed(2).replaceAll('.', ',')}',
         style: GoogleFonts.inter(
           color: Colors.white,
           fontSize: 12,

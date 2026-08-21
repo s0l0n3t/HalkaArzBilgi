@@ -186,7 +186,7 @@ class PortfolioScreen extends ConsumerWidget {
                           size: 16,
                         ),
                         Text(
-                          '${isGain ? '+' : ''}%${gainLossPercent.toStringAsFixed(2).replaceAll('.', ',')}',
+                          '${isGain ? '%' : '-%'}${gainLossPercent.abs().toStringAsFixed(2).replaceAll('.', ',')}',
                           style: GoogleFonts.inter(
                             color: isGain ? AppColors.primaryGreen : AppColors.lossRed,
                             fontSize: 12,

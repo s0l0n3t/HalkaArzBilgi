@@ -49,7 +49,7 @@ class IpoAllocationSection extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '%${group.percent.toStringAsFixed(2)}',
+                          '%${group.percent.toStringAsFixed(2).replaceAll('.', ',')}',
                           style: GoogleFonts.inter(
                             color: Colors.white,
                             fontSize: 14,
