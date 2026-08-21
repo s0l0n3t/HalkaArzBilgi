@@ -1,4 +1,7 @@
+import 'package:halkaarzbilgi/features/home/models/ipo_model.dart';
 import 'package:halkaarzbilgi/features/home/models/stock_model.dart';
+import 'package:halkaarzbilgi/features/ipo_detail/models/chart_data_model.dart';
+import 'package:halkaarzbilgi/features/ipo_detail/services/chart_data_service.dart';
 
 /// Tüm borsa verilerini (hisseler, kâr/zarar, günlük değişim) çeken katmanın arayüzü.
 abstract class IStockRepository {
@@ -13,21 +16,43 @@ abstract class IStockRepository {
 /// Veritabanı (Supabase/Firebase/REST API) entegrasyonu tamamlandığında 
 /// bu sınıf yerine `RestStockRepository` yazılacaktır.
 class MockRemoteStockRepository implements IStockRepository {
+  final MockChartDataService _chartService = MockChartDataService();
+
   @override
   Future<List<StockModel>> getAllStocks() async {
-    // Ağ gecikmesini simüle et (1 saniye)
-    await Future.delayed(const Duration(seconds: 1));
+    // Ağ gecikmesini simüle et (150ms)
+    await Future.delayed(const Duration(milliseconds: 150));
     
-    // Şimdilik StockModel içindeki mock veriyi döndürüyoruz.
-    // Gerçek yapıda burada http.get veya Supabase query çalışacak.
-    return StockModel.mockWatchlist;
+    // Tüm hisseleri grafikteki 1 günlük değişim ve son fiyat bilgileriyle dinamik oluştur
+    return IpoModel.mockAllIpos.asMap().entries.map((entry) {
+      final index = entry.key;
+      final ipo = entry.value;
+
+      final chartData = _chartService.getChartData(
+        symbol: ipo.symbol,
+        period: ChartPeriod.day,
+        basePrice: ipo.price,
+      );
+
+      return StockModel(
+        id: (index + 1).toString(),
+        symbol: ipo.symbol,
+        companyName: ipo.companyName,
+        currentPrice: chartData.lastPrice,
+        change: chartData.changeTL,
+        changePercent: chartData.changePercent,
+        logoUrl: ipo.logoUrl,
+        tavanSeriDays: ipo.tavanSeriDays,
+        tavanSeriCompleted: ipo.tavanSeriCompleted,
+      );
+    }).toList();
   }
 
   @override
   Future<StockModel?> getStockBySymbol(String symbol) async {
-    await Future.delayed(const Duration(milliseconds: 500));
+    final all = await getAllStocks();
     try {
-      return StockModel.mockWatchlist.firstWhere((s) => s.symbol == symbol);
+      return all.firstWhere((s) => s.symbol == symbol);
     } catch (e) {
       return null;
     }
