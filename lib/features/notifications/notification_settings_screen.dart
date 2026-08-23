@@ -57,8 +57,9 @@ class _NotificationSettingsScreenState
           'Bildirim Ayarları',
           style: GoogleFonts.inter(
             color: Colors.white,
-            fontSize: 22,
+            fontSize: 28,
             fontWeight: FontWeight.bold,
+            letterSpacing: -0.5,
           ),
         ),
       ),
@@ -99,101 +100,117 @@ class _NotificationSettingsScreenState
           // 1. Master Switch Card
           _buildMasterSwitchCard(settings, notifier, isLoggedIn),
 
-          // 2. Animated Collapsible Lower Section
-          AnimatedSize(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOutCubic,
-            alignment: Alignment.topCenter,
-            child: (settings.masterEnabled && isLoggedIn)
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 20),
+          // 2. Animated Collapsible Lower Section (Aşağıdan yukarıya kapanma / yukarıdan aşağıya açılma)
+          ClipRect(
+            child: AnimatedSize(
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeInOutCubic,
+              alignment: Alignment.topCenter,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 300),
+                opacity: (settings.masterEnabled && isLoggedIn) ? 1.0 : 0.0,
+                curve: Curves.easeInOut,
+                child: AnimatedSlide(
+                  duration: const Duration(milliseconds: 350),
+                  offset: (settings.masterEnabled && isLoggedIn)
+                      ? Offset.zero
+                      : const Offset(0, -0.06),
+                  curve: Curves.easeInOutCubic,
+                  child: (settings.masterEnabled && isLoggedIn)
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 20),
 
-                      // Notification Channels Header
-                      Text(
-                        'BİLDİRİM KANALLARI',
-                        style: GoogleFonts.inter(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.1,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
+                            // Notification Channels Header
+                            Text(
+                              'BİLDİRİM KANALLARI',
+                              style: GoogleFonts.inter(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.1,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
 
-                      // Categories Card
-                      _buildCategoriesCard(settings, notifier),
-                      const SizedBox(height: 24),
+                            // Categories Card
+                            _buildCategoriesCard(settings, notifier),
+                            const SizedBox(height: 24),
 
-                      // Stock Notifications Header (clean without buttons)
-                      Text(
-                        'HİSSE BİLDİRİMLERİ',
-                        style: GoogleFonts.inter(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.1,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
+                            // Stock Notifications Header (clean without buttons)
+                            Text(
+                              'HİSSE BİLDİRİMLERİ',
+                              style: GoogleFonts.inter(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.1,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
 
-                      // Search Bar
-                      _buildSearchBar(),
-                      const SizedBox(height: 12),
+                            // Search Bar
+                            _buildSearchBar(),
+                            const SizedBox(height: 12),
 
-                      // Stock Items List
-                      if (filteredStocks.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 40),
-                          child: Center(
-                            child: Column(
-                              children: [
-                                Icon(
-                                  Icons.search_off_rounded,
-                                  size: 40,
-                                  color: AppColors.textSecondary
-                                      .withValues(alpha: 0.5),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Aradığınız hisse bulunamadı',
-                                  style: GoogleFonts.inter(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 14,
+                            // Stock Items List
+                            if (filteredStocks.isEmpty)
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 40),
+                                child: Center(
+                                  child: Column(
+                                    children: [
+                                      Icon(
+                                        Icons.search_off_rounded,
+                                        size: 40,
+                                        color: AppColors.textSecondary
+                                            .withValues(alpha: 0.5),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Aradığınız hisse bulunamadı',
+                                        style: GoogleFonts.inter(
+                                          color: AppColors.textSecondary,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                        )
-                      else
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: filteredStocks.length,
-                          itemBuilder: (context, index) {
-                            final stock = filteredStocks[index];
-                            final isFirst = index == 0;
-                            final isLast = index == filteredStocks.length - 1;
-                            final isEnabled =
-                                settings.enabledStocks.contains(stock.symbol);
+                              )
+                            else
+                              ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: filteredStocks.length,
+                                itemBuilder: (context, index) {
+                                  final stock = filteredStocks[index];
+                                  final isFirst = index == 0;
+                                  final isLast =
+                                      index == filteredStocks.length - 1;
+                                  final isEnabled = settings.enabledStocks
+                                      .contains(stock.symbol);
 
-                            return _buildStockItem(
-                              stock: stock,
-                              isEnabled: isEnabled,
-                              isFirst: isFirst,
-                              isLast: isLast,
-                              isMasterEnabled: settings.masterEnabled,
-                              onToggle: () =>
-                                  notifier.toggleStock(stock.symbol),
-                            );
-                          },
-                        ),
-                      const SizedBox(height: 32),
-                    ],
-                  )
-                : const SizedBox.shrink(),
+                                  return _buildStockItem(
+                                    stock: stock,
+                                    isEnabled: isEnabled,
+                                    isFirst: isFirst,
+                                    isLast: isLast,
+                                    isMasterEnabled: settings.masterEnabled,
+                                    onToggle: () =>
+                                        notifier.toggleStock(stock.symbol),
+                                  );
+                                },
+                              ),
+                            const SizedBox(height: 32),
+                          ],
+                        )
+                      : const SizedBox(width: double.infinity),
+                ),
+              ),
+            ),
           ),
         ],
       ),
