@@ -529,8 +529,52 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
+  // ── Colorsheet Paletine Göre Dinamik 4 Kademeli Isı Haritası Rengi ──
+  // Artıştan azalışa sıra: #23A983 (%100), #1C8769, #15664F, #0E4434, #333333 (%0), #761805, #9C2007, #D62C0A, #EA300B (-%100)
+  static const _heatmapGreenPalette = [
+    Color(0xFF0E4434), // %0 - %25   (0'a yakın en koyu yeşil)
+    Color(0xFF15664F), // %25 - %50  (koyu yeşil)
+    Color(0xFF1C8769), // %50 - %75  (canlı zümrüt)
+    Color(0xFF23A983), // %75 - %100 (en yüksek artış, en canlı açık yeşil)
+  ];
+  static const _heatmapRedPalette = [
+    Color(0xFF761805), // %0 - %25   (0'a yakın en koyu bordo)
+    Color(0xFF9C2007), // %25 - %50  (koyu kırmızı)
+    Color(0xFFD62C0A), // %50 - %75  (canlı kırmızı)
+    Color(0xFFEA300B), // %75 - %100 (en yüksek düşüş, en canlı parlak kırmızı)
+  ];
+  static const _heatmapNeutral = Color(0xFF333333); // %0
+
+  Color _getHeatmapColor({
+    required double changePercent,
+    required bool isGain,
+    required double maxGain,
+    required double maxLoss,
+  }) {
+    if (changePercent == 0) return _heatmapNeutral;
+
+    final absChange = changePercent.abs();
+    if (isGain) {
+      final maxVal = maxGain > 0 ? maxGain : 1.0;
+      final ratio = (absChange / maxVal).clamp(0.0, 1.0);
+      final index = (ratio * 3.99).floor().clamp(0, 3);
+      return _heatmapGreenPalette[index];
+    } else {
+      final maxVal = maxLoss > 0 ? maxLoss : 1.0;
+      final ratio = (absChange / maxVal).clamp(0.0, 1.0);
+      final index = (ratio * 3.99).floor().clamp(0, 3);
+      return _heatmapRedPalette[index];
+    }
+  }
+
   // ── Gelişmiş Mozaik Isı Haritası (TradingView / Görsel 3 Treemap) ──
   Widget _buildAdvancedHeatmap(List<HeatmapTileItem> items) {
+    // Dinamik max artış/düşüş hesapla (mutlak değerler)
+    final gains = items.where((i) => i.isGain && !i.isEmpty).map((i) => i.changePercent.abs());
+    final losses = items.where((i) => !i.isGain && !i.isEmpty).map((i) => i.changePercent.abs());
+    final maxGain = gains.isNotEmpty ? gains.reduce((a, b) => a > b ? a : b) : 1.0;
+    final maxLoss = losses.isNotEmpty ? losses.reduce((a, b) => a > b ? a : b) : 1.0;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
       child: Column(
@@ -550,6 +594,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         child: _buildHeatmapTile(
                           stock: items[0],
                           size: HeatmapTileSize.large,
+                          maxGain: maxGain,
+                          maxLoss: maxLoss,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -558,6 +604,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         child: _buildHeatmapTile(
                           stock: items[1],
                           size: HeatmapTileSize.large,
+                          maxGain: maxGain,
+                          maxLoss: maxLoss,
                         ),
                       ),
                     ],
@@ -580,6 +628,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               child: _buildHeatmapTile(
                                 stock: items[2], // AAGYO (+134.23%)
                                 size: HeatmapTileSize.medium,
+                                maxGain: maxGain,
+                                maxLoss: maxLoss,
                               ),
                             ),
                             const SizedBox(width: 2),
@@ -588,6 +638,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               child: _buildHeatmapTile(
                                 stock: items[3], // KLNMA (+45.33%)
                                 size: HeatmapTileSize.medium,
+                                maxGain: maxGain,
+                                maxLoss: maxLoss,
                               ),
                             ),
                           ],
@@ -604,6 +656,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               child: _buildHeatmapTile(
                                 stock: items[4], // BTCTR
                                 size: HeatmapTileSize.medium,
+                                maxGain: maxGain,
+                                maxLoss: maxLoss,
                               ),
                             ),
                             const SizedBox(width: 2),
@@ -611,6 +665,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               child: _buildHeatmapTile(
                                 stock: items[5], // YLDZE
                                 size: HeatmapTileSize.medium,
+                                maxGain: maxGain,
+                                maxLoss: maxLoss,
                               ),
                             ),
                             const SizedBox(width: 2),
@@ -618,6 +674,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               child: _buildHeatmapTile(
                                 stock: items[6], // MRKEZ
                                 size: HeatmapTileSize.medium,
+                                maxGain: maxGain,
+                                maxLoss: maxLoss,
                               ),
                             ),
                           ],
@@ -634,6 +692,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               child: _buildHeatmapTile(
                                 stock: items[7], // DENIZ
                                 size: HeatmapTileSize.medium,
+                                maxGain: maxGain,
+                                maxLoss: maxLoss,
                               ),
                             ),
                             const SizedBox(width: 2),
@@ -641,6 +701,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               child: _buildHeatmapTile(
                                 stock: items[8], // KCHOL
                                 size: HeatmapTileSize.medium,
+                                maxGain: maxGain,
+                                maxLoss: maxLoss,
                               ),
                             ),
                             const SizedBox(width: 2),
@@ -648,6 +710,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               child: _buildHeatmapTile(
                                 stock: items[9], // THYAO
                                 size: HeatmapTileSize.medium,
+                                maxGain: maxGain,
+                                maxLoss: maxLoss,
                               ),
                             ),
                           ],
@@ -669,6 +733,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     child: _buildHeatmapTile(
                                       stock: items[10], // TUPRS
                                       size: HeatmapTileSize.small,
+                                      maxGain: maxGain,
+                                      maxLoss: maxLoss,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -676,6 +742,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     child: _buildHeatmapTile(
                                       stock: items[11], // ASELS
                                       size: HeatmapTileSize.small,
+                                      maxGain: maxGain,
+                                      maxLoss: maxLoss,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -683,6 +751,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     child: _buildHeatmapTile(
                                       stock: items[12], // EREGL
                                       size: HeatmapTileSize.small,
+                                      maxGain: maxGain,
+                                      maxLoss: maxLoss,
                                     ),
                                   ),
                                 ],
@@ -704,6 +774,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                           child: _buildHeatmapTile(
                                             stock: items[13], // BIMAS (+80.91%)
                                             size: HeatmapTileSize.small,
+                                            maxGain: maxGain,
+                                            maxLoss: maxLoss,
                                           ),
                                         ),
                                         const SizedBox(width: 2),
@@ -711,6 +783,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                           child: _buildHeatmapTile(
                                             stock: items[14], // GARAN (-4.15%)
                                             size: HeatmapTileSize.small,
+                                            maxGain: maxGain,
+                                            maxLoss: maxLoss,
                                           ),
                                         ),
                                       ],
@@ -727,6 +801,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                           child: _buildHeatmapTile(
                                             stock: items[15], // SISE
                                             size: HeatmapTileSize.mini,
+                                            maxGain: maxGain,
+                                            maxLoss: maxLoss,
                                           ),
                                         ),
                                         const SizedBox(width: 2),
@@ -734,6 +810,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                           child: _buildHeatmapTile(
                                             stock: items[16], // SAHOL
                                             size: HeatmapTileSize.mini,
+                                            maxGain: maxGain,
+                                            maxLoss: maxLoss,
                                           ),
                                         ),
                                         const SizedBox(width: 2),
@@ -741,6 +819,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                           child: _buildHeatmapTile(
                                             stock: items[17], // PGSUS
                                             size: HeatmapTileSize.mini,
+                                            maxGain: maxGain,
+                                            maxLoss: maxLoss,
                                           ),
                                         ),
                                       ],
@@ -757,6 +837,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                           child: _buildHeatmapTile(
                                             stock: items[18], // FROTO
                                             size: HeatmapTileSize.micro,
+                                            maxGain: maxGain,
+                                            maxLoss: maxLoss,
                                           ),
                                         ),
                                         const SizedBox(width: 2),
@@ -764,6 +846,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                           child: _buildHeatmapTile(
                                             stock: items[19], // KOZAL
                                             size: HeatmapTileSize.micro,
+                                            maxGain: maxGain,
+                                            maxLoss: maxLoss,
                                           ),
                                         ),
                                         const SizedBox(width: 2),
@@ -771,6 +855,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                           child: _buildHeatmapTile(
                                             stock: items[20], // PETKM
                                             size: HeatmapTileSize.micro,
+                                            maxGain: maxGain,
+                                            maxLoss: maxLoss,
                                           ),
                                         ),
                                         const SizedBox(width: 2),
@@ -778,6 +864,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                           child: _buildHeatmapTile(
                                             stock: items[21], // AKBNK
                                             size: HeatmapTileSize.micro,
+                                            maxGain: maxGain,
+                                            maxLoss: maxLoss,
                                           ),
                                         ),
                                       ],
@@ -804,11 +892,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget _buildHeatmapTile({
     required HeatmapTileItem stock,
     required HeatmapTileSize size,
+    double maxGain = 20.0,
+    double maxLoss = 20.0,
   }) {
-    // Görseldeki Canlı Yeşil ve Canlı Kırmızı
-    final tileColor = stock.isGain
-        ? const Color(0xFF1E9E6D) // Vibrant Green
-        : const Color(0xFFE02A1D); // Vibrant Red
+    // Colorsheet paletine göre dinamik 4 kademeli renk
+    final tileColor = _getHeatmapColor(
+      changePercent: stock.changePercent,
+      isGain: stock.isGain,
+      maxGain: maxGain,
+      maxLoss: maxLoss,
+    );
 
     return Material(
       color: tileColor,
