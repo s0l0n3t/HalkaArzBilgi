@@ -64,6 +64,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ? _buildLoggedInBody()
                 : _buildGuestBody(),
 
+            // Floating banner (sadece giriş yapmamış kullanıcılar)
+            if (!isLoggedIn)
+              const Positioned(
+                top: 24,
+                left: 0,
+                right: 0,
+                child: GuestFloatingBanner(),
+              ),
+
             // Scroll-to-top button
             Positioned(
               right: 16,
@@ -128,31 +137,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  /// Giriş yapmamış kullanıcılar: CustomScrollView + pinned sticky banner.
+  /// Giriş yapmamış kullanıcılar: düz SingleChildScrollView, banner üstte yüzer.
   Widget _buildGuestBody() {
-    return CustomScrollView(
+    return SingleChildScrollView(
       controller: _scrollController,
-      slivers: [
-        // Sticky bilgi barı — pinned: true ile ekranın üstüne yapışır
-        const GuestStickyBanner(),
-
-        // Geri kalan içerik SliverToBoxAdapter ile sarmalanır
-        SliverToBoxAdapter(
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                NewIposSection(),
-                SizedBox(height: 24),
-                AllIposSection(),
-                SizedBox(height: 24),
-              ],
-            ),
-          ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            // Banner için üstte boşluk (24px offset + banner yüksekliği sonrası içerik başlar)
+            SizedBox(height: 56),
+            NewIposSection(),
+            SizedBox(height: 24),
+            AllIposSection(),
+            SizedBox(height: 24),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
