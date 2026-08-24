@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:halkaarzbilgi/core/providers/auth_provider.dart';
 import 'package:halkaarzbilgi/core/providers/market_provider.dart';
 import 'package:halkaarzbilgi/core/providers/notification_settings_provider.dart';
@@ -18,22 +19,38 @@ class NotificationSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _NotificationSettingsScreenState
-    extends ConsumerState<NotificationSettingsScreen> {
+    extends ConsumerState<NotificationSettingsScreen>
+    with WidgetsBindingObserver {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.trim().toLowerCase();
       });
     });
+
+    // Açılışta cihaz sistem bildirim iznini senkronize et
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(notificationSettingsProvider.notifier).syncWithSystemPermission();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Ayarlar sayfasından veya arka plandan dönüldüğünde izin durumunu anında güncelle
+    if (state == AppLifecycleState.resumed) {
+      ref.read(notificationSettingsProvider.notifier).syncWithSystemPermission();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
     super.dispose();
   }
@@ -288,16 +305,92 @@ class _NotificationSettingsScreenState
           CupertinoSwitch(
             value: effectiveEnabled,
             activeTrackColor: AppColors.primaryGreen,
-            onChanged: (_) {
-              if (!isLoggedIn) {
-                AuthBottomSheet.show(context);
-              } else {
-                notifier.toggleMaster();
-              }
-            },
+            onChanged: (_) => _handleMasterSwitchToggle(
+              isLoggedIn: isLoggedIn,
+              currentlyEnabled: effectiveEnabled,
+              notifier: notifier,
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  /// Tüm Bildirimler şalteri toggle mantığı:
+  /// - Giriş yapılmamışsa AuthBottomSheet açılır.
+  /// - Kapatılmak istendiğinde doğrudan toggleMaster() çalışır.
+  /// - Açılmak istendiğinde önce cihaz bildirim izni kontrol edilir.
+  Future<void> _handleMasterSwitchToggle({
+    required bool isLoggedIn,
+    required bool currentlyEnabled,
+    required NotificationSettingsNotifier notifier,
+  }) async {
+    // 1. Giriş yapmamış kullanıcı
+    if (!isLoggedIn) {
+      if (!mounted) return;
+      AuthBottomSheet.show(context);
+      return;
+    }
+
+    // 2. Kapatma işlemi — izin kontrolü gereksiz
+    if (currentlyEnabled) {
+      notifier.toggleMaster();
+      return;
+    }
+
+    // 3. Açma işlemi — cihaz bildirim iznini kontrol et
+    final status = await Permission.notification.status;
+
+    if (status.isGranted) {
+      // İzin zaten verilmiş
+      notifier.toggleMaster();
+      return;
+    }
+
+    if (status.isDenied) {
+      // İlk kez veya tekrar sorulabilir durumda — yerel sistem diyaloğunu göster
+      final result = await Permission.notification.request();
+      if (result.isGranted) {
+        notifier.toggleMaster();
+      } else {
+        // Reddedildi — ayarlara yönlendirme diyaloğu göster
+        if (!mounted) return;
+        _showSettingsRedirectDialog();
+      }
+      return;
+    }
+
+    // 4. Kalıcı olarak reddedilmiş veya kısıtlanmış
+    if (!mounted) return;
+    _showSettingsRedirectDialog();
+  }
+
+  /// Kullanıcıyı cihaz ayarlarına yönlendiren platforma duyarlı diyalog.
+  void _showSettingsRedirectDialog() {
+    showAdaptiveDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog.adaptive(
+          title: const Text('Lütfen bildirimlere izin verin'),
+          content: const Text(
+            'Bildirimleri açmak için Ayarlar\'a gidin ve '
+            'HalkaArzBilgi bildirimlerini etkinleştirin.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('İptal'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                openAppSettings();
+              },
+              child: const Text('Ayarlar'),
+            ),
+          ],
+        );
+      },
     );
   }
 
