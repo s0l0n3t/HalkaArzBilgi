@@ -1,11 +1,13 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:halkaarzbilgi/core/providers/tab_provider.dart';
 import 'package:halkaarzbilgi/core/theme/app_colors.dart';
 
-class AppBottomNavBar extends StatefulWidget {
+class AppBottomNavBar extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
 
   const AppBottomNavBar({
@@ -14,13 +16,14 @@ class AppBottomNavBar extends StatefulWidget {
   });
 
   @override
-  State<AppBottomNavBar> createState() => _AppBottomNavBarState();
+  ConsumerState<AppBottomNavBar> createState() => _AppBottomNavBarState();
 }
 
-class _AppBottomNavBarState extends State<AppBottomNavBar> {
+class _AppBottomNavBarState extends ConsumerState<AppBottomNavBar> {
   bool _isScrolling = false;
 
   void _onTap(BuildContext context, int index) {
+    ref.read(tabIndexProvider.notifier).state = index;
     widget.navigationShell.goBranch(
       index,
       initialLocation: index == widget.navigationShell.currentIndex,

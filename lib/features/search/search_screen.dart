@@ -6,6 +6,7 @@ import 'package:halkaarzbilgi/core/widgets/percentage_badge.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:halkaarzbilgi/core/providers/market_provider.dart';
+import 'package:halkaarzbilgi/core/providers/tab_provider.dart';
 import 'package:halkaarzbilgi/features/home/models/stock_model.dart';
 
 enum HeatmapTileSize { large, medium, small, mini, micro }
@@ -258,6 +259,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Sekme geçişi dinleyicisi: Keşfet/Arama sekmesine her girildiğinde filtreleri ve aramayı sıfırla
+    ref.listen<int>(tabIndexProvider, (previous, next) {
+      if (next == 3 && previous != 3) {
+        _searchController.clear();
+        setState(() {
+          _searchQuery = '';
+          _selectedFilter = StockFilter.all;
+        });
+        _focusNode.unfocus();
+      }
+    });
+
     final isSearching = _searchQuery.isNotEmpty;
     final asyncStocks = ref.watch(allMarketStocksProvider);
 
