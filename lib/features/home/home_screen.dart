@@ -5,6 +5,7 @@ import 'package:halkaarzbilgi/core/theme/app_colors.dart';
 import 'package:halkaarzbilgi/features/home/widgets/account_card.dart';
 import 'package:halkaarzbilgi/features/home/widgets/all_ipos_section.dart';
 import 'package:halkaarzbilgi/features/home/widgets/guest_sticky_banner.dart';
+import 'package:halkaarzbilgi/features/home/widgets/ipo_calendar_widget.dart';
 import 'package:halkaarzbilgi/features/home/widgets/new_ipos_section.dart';
 import 'package:halkaarzbilgi/features/home/widgets/watchlist_section.dart';
 
@@ -117,13 +118,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            AccountCard(),
-            SizedBox(height: 24),
-            NewIposSection(),
-            SizedBox(height: 24),
-            WatchlistSection(),
-            SizedBox(height: 24),
+          children: [
+            const AccountCard(),
+            const SizedBox(height: 24),
+            const IpoCalendarWidget(),
+            const SizedBox(height: 24),
+            const NewIposSection(),
+            const SizedBox(height: 24),
+            const WatchlistSection(),
+            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -138,13 +141,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             // Banner için üstte boşluk (24px offset + banner yüksekliği sonrası içerik başlar)
-            SizedBox(height: 56),
-            NewIposSection(),
-            SizedBox(height: 24),
-            AllIposSection(),
-            SizedBox(height: 24),
+            const SizedBox(height: 56),
+            const IpoCalendarWidget(),
+            const SizedBox(height: 24),
+            const NewIposSection(),
+            const SizedBox(height: 24),
+            const AllIposSection(),
+            const SizedBox(height: 24),
           ],
         ),
       ),

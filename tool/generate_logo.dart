@@ -49,6 +49,7 @@ void main() {
 
   _savePng(fg, 'assets/images/app_logo_foreground.png');
 
+  // ignore: avoid_print
   print('✅ Generated launcher icons: Green #00B856 background + Black #111111 bars foreground');
 }
 
