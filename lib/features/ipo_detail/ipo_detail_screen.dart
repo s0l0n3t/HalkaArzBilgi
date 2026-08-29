@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+
+
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/core/providers/auth_provider.dart';
+import 'package:halkaarzbilgi/core/widgets/ipo_alert_button.dart';
 import 'package:halkaarzbilgi/core/widgets/ipo_watchlist_button.dart';
 import 'package:halkaarzbilgi/features/home/models/ipo_model.dart';
 import 'package:halkaarzbilgi/features/ipo_detail/widgets/ipo_header_section.dart';
@@ -51,26 +53,8 @@ class IpoDetailScreen extends ConsumerWidget {
         centerTitle: true,
         actions: isLoggedIn
             ? [
-                // Alert button (placeholder — feature coming soon)
-                GestureDetector(
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Bildirim özelliği yakında eklenecek.'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  },
-                  behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: SvgPicture.asset(
-                      'assets/alert_inactive.svg',
-                      height: 24,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
+                // Alert button — synced with notificationSettingsProvider
+                IpoAlertButton(symbol: ipo.symbol, size: 24),
                 const SizedBox(width: 4),
                 // Watchlist (add/remove) button
                 IpoWatchlistButton(symbol: ipo.symbol, size: 24),

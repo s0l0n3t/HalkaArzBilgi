@@ -119,7 +119,7 @@ class _NotificationSettingsScreenState
           // 1. Master Switch Card
           _buildMasterSwitchCard(settings, notifier, isLoggedIn),
 
-          // 2. Animated Collapsible Lower Section (Aşağıdan yukarıya kapanma / yukarıdan aşağıya açılma)
+          // 2. Animated Collapsible Lower Section
           ClipRect(
             child: AnimatedSize(
               duration: const Duration(milliseconds: 350),
@@ -139,91 +139,133 @@ class _NotificationSettingsScreenState
                       ? Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 24),
 
                             // Notification Channels Header
                             Text(
-                              'BİLDİRİM KANALLARI',
+                              'Bilgilendirme',
                               style: GoogleFonts.inter(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
+                                color: Colors.white,
+                                fontSize: 16,
                                 fontWeight: FontWeight.w700,
-                                letterSpacing: 1.1,
                               ),
                             ),
                             const SizedBox(height: 10),
 
                             // Categories Card
                             _buildCategoriesCard(settings, notifier),
-                            const SizedBox(height: 24),
 
-                            // Stock Notifications Header (clean without buttons)
-                            Text(
-                              'HİSSE BİLDİRİMLERİ',
-                              style: GoogleFonts.inter(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1.1,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
+                            // 3. Animated Collapsible Stock Preferences Section (Tavan bildirimlerine bağlı)
+                            ClipRect(
+                              child: AnimatedSize(
+                                duration: const Duration(milliseconds: 350),
+                                curve: Curves.easeInOutCubic,
+                                alignment: Alignment.topCenter,
+                                child: AnimatedOpacity(
+                                  duration: const Duration(milliseconds: 300),
+                                  opacity: settings.tavanEnabled ? 1.0 : 0.0,
+                                  curve: Curves.easeInOut,
+                                  child: AnimatedSlide(
+                                    duration: const Duration(milliseconds: 350),
+                                    offset: settings.tavanEnabled
+                                        ? Offset.zero
+                                        : const Offset(0, -0.06),
+                                    curve: Curves.easeInOutCubic,
+                                    child: settings.tavanEnabled
+                                        ? Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              const SizedBox(height: 24),
 
-                            // Search Bar
-                            _buildSearchBar(),
-                            const SizedBox(height: 12),
+                                              // Stock Notifications Header
+                                              Text(
+                                                'Hisse tercihleri',
+                                                style: GoogleFonts.inter(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 10),
 
-                            // Stock Items List
-                            if (filteredStocks.isEmpty)
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 40),
-                                child: Center(
-                                  child: Column(
-                                    children: [
-                                      Icon(
-                                        Icons.search_off_rounded,
-                                        size: 40,
-                                        color: AppColors.textSecondary
-                                            .withValues(alpha: 0.5),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Aradığınız hisse bulunamadı',
-                                        style: GoogleFonts.inter(
-                                          color: AppColors.textSecondary,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ],
+                                              // Search Bar
+                                              _buildSearchBar(),
+                                              const SizedBox(height: 12),
+
+                                              // Stock Items List
+                                              if (filteredStocks.isEmpty)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                          vertical: 40),
+                                                  child: Center(
+                                                    child: Column(
+                                                      children: [
+                                                        Icon(
+                                                          Icons
+                                                              .search_off_rounded,
+                                                          size: 40,
+                                                          color: AppColors
+                                                              .textSecondary
+                                                              .withValues(
+                                                                  alpha: 0.5),
+                                                        ),
+                                                        const SizedBox(
+                                                            height: 8),
+                                                        Text(
+                                                          'Aradığınız hisse bulunamadı',
+                                                          style:
+                                                              GoogleFonts.inter(
+                                                            color: AppColors
+                                                                .textSecondary,
+                                                            fontSize: 14,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                )
+                                              else
+                                                ListView.builder(
+                                                  shrinkWrap: true,
+                                                  physics:
+                                                      const NeverScrollableScrollPhysics(),
+                                                  itemCount:
+                                                      filteredStocks.length,
+                                                  itemBuilder: (context, index) {
+                                                    final stock =
+                                                        filteredStocks[index];
+                                                    final isFirst = index == 0;
+                                                    final isLast = index ==
+                                                        filteredStocks.length -
+                                                            1;
+                                                    final isEnabled = settings
+                                                        .enabledStocks
+                                                        .contains(stock.symbol);
+
+                                                    return _buildStockItem(
+                                                      stock: stock,
+                                                      isEnabled: isEnabled,
+                                                      isFirst: isFirst,
+                                                      isLast: isLast,
+                                                      isMasterEnabled: settings
+                                                          .masterEnabled,
+                                                      onToggle: () => notifier
+                                                          .toggleStock(
+                                                              stock.symbol),
+                                                    );
+                                                  },
+                                                ),
+                                              const SizedBox(height: 32),
+                                            ],
+                                          )
+                                        : const SizedBox(
+                                            width: double.infinity),
                                   ),
                                 ),
-                              )
-                            else
-                              ListView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: filteredStocks.length,
-                                itemBuilder: (context, index) {
-                                  final stock = filteredStocks[index];
-                                  final isFirst = index == 0;
-                                  final isLast =
-                                      index == filteredStocks.length - 1;
-                                  final isEnabled = settings.enabledStocks
-                                      .contains(stock.symbol);
-
-                                  return _buildStockItem(
-                                    stock: stock,
-                                    isEnabled: isEnabled,
-                                    isFirst: isFirst,
-                                    isLast: isLast,
-                                    isMasterEnabled: settings.masterEnabled,
-                                    onToggle: () =>
-                                        notifier.toggleStock(stock.symbol),
-                                  );
-                                },
                               ),
-                            const SizedBox(height: 32),
+                            ),
                           ],
                         )
                       : const SizedBox(width: double.infinity),
@@ -244,76 +286,53 @@ class _NotificationSettingsScreenState
     // Giriş yapmamış kullanıcılar için şalter görsel olarak kapalı.
     final effectiveEnabled = isLoggedIn && settings.masterEnabled;
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: effectiveEnabled
-            ? const Color(0xFF14241B)
-            : AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: effectiveEnabled
-              ? AppColors.primaryGreen.withValues(alpha: 0.4)
-              : AppColors.border,
-          width: 1,
+          color: AppColors.border,
+          width: 0.5,
         ),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: effectiveEnabled
-                  ? AppColors.primaryGreen.withValues(alpha: 0.2)
-                  : Colors.white.withValues(alpha: 0.05),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              effectiveEnabled
-                  ? Icons.notifications_active_rounded
-                  : Icons.notifications_off_rounded,
-              color: effectiveEnabled
-                  ? AppColors.primaryGreen
-                  : AppColors.textSecondary,
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Tüm Bildirimler',
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Anlık bildirimler',
+                    style: GoogleFonts.inter(
+                      color: effectiveEnabled ? Colors.white : AppColors.textSecondary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  effectiveEnabled
-                      ? 'Anlık bildirimler ve uyarılar aktif'
-                      : 'Tüm bildirimler devre dışı bırakıldı',
-                  style: GoogleFonts.inter(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
+                  const SizedBox(height: 3),
+                  Text(
+                    'Anlık bildirimleri aktif et.',
+                    style: GoogleFonts.inter(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          CupertinoSwitch(
-            value: effectiveEnabled,
-            activeTrackColor: AppColors.primaryGreen,
-            onChanged: (_) => _handleMasterSwitchToggle(
-              isLoggedIn: isLoggedIn,
-              currentlyEnabled: effectiveEnabled,
-              notifier: notifier,
+            CupertinoSwitch(
+              value: effectiveEnabled,
+              activeTrackColor: const Color(0xFF00A34C),
+              onChanged: (_) => _handleMasterSwitchToggle(
+                isLoggedIn: isLoggedIn,
+                currentlyEnabled: effectiveEnabled,
+                notifier: notifier,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -512,37 +531,30 @@ class _NotificationSettingsScreenState
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.border, width: 0.5),
       ),
       child: Column(
         children: [
           _buildCategoryTile(
-            title: 'Tavan Bildirimleri',
-            subtitle:
-                'Tavan serisi ve tavan bozma anlık bildirimleri',
-            icon: Icons.trending_up_rounded,
-            iconColor: const Color(0xFF00B856),
+            title: 'Tavan bildirimleri',
+            subtitle: 'Hisse tercihlerindeki tavan bildirimlerini etkinleştir.',
             value: settings.tavanEnabled,
             enabled: settings.masterEnabled,
             onChanged: notifier.toggleTavan,
             showDivider: true,
           ),
           _buildCategoryTile(
-            title: 'Haber & KAP Bildirimleri',
-            subtitle: 'Önemli halka arz haberleri',
-            icon: Icons.newspaper_rounded,
-            iconColor: const Color(0xFF32ADE6),
+            title: 'Haber ve KAP bildirimleri',
+            subtitle: 'Halka arzlar hakkında duyuruları elde et.',
             value: settings.newsEnabled,
             enabled: settings.masterEnabled,
             onChanged: notifier.toggleNews,
             showDivider: true,
           ),
           _buildCategoryTile(
-            title: 'Yeni Halka Arz Duyuruları',
-            subtitle: 'Yeni onaylanan halka arzlar',
-            icon: Icons.rocket_launch_rounded,
-            iconColor: const Color(0xFFFF9F0A),
+            title: 'Yeni halka arz duyuruları',
+            subtitle: 'Yeni onaylanan halka arz duyurularının anlık bildirimi etkinleştir.',
             value: settings.newIposEnabled,
             enabled: settings.masterEnabled,
             onChanged: notifier.toggleNewIpos,
@@ -556,65 +568,45 @@ class _NotificationSettingsScreenState
   Widget _buildCategoryTile({
     required String title,
     required String subtitle,
-    required IconData icon,
-    required Color iconColor,
     required bool value,
     required bool enabled,
     required VoidCallback onChanged,
     required bool showDivider,
   }) {
-    final opacity = enabled ? 1.0 : 0.4;
-
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: enabled ? 0.15 : 0.05),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  icon,
-                  color: enabled ? iconColor : AppColors.textSecondary,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
               Expanded(
-                child: Opacity(
-                  opacity: opacity,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.inter(
+                        color: enabled ? Colors.white : AppColors.textSecondary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: GoogleFonts.inter(
-                          color: AppColors.textSecondary,
-                          fontSize: 11,
-                        ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.inter(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: 8),
               CupertinoSwitch(
                 value: value && enabled,
-                activeTrackColor: AppColors.primaryGreen,
+                activeTrackColor: const Color(0xFF00A34C),
                 onChanged: enabled ? (_) => onChanged() : null,
               ),
             ],
@@ -625,11 +617,13 @@ class _NotificationSettingsScreenState
             height: 1,
             thickness: 0.5,
             color: AppColors.border,
-            indent: 62,
+            indent: 16,
+            endIndent: 16,
           ),
       ],
     );
   }
+
 
   Widget _buildSearchBar() {
     return Container(
@@ -712,9 +706,9 @@ class _NotificationSettingsScreenState
                         Text(
                           stock.symbol,
                           style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
+                            color: isMasterEnabled ? Colors.white : AppColors.textSecondary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -724,7 +718,7 @@ class _NotificationSettingsScreenState
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.inter(
                             color: AppColors.textSecondary,
-                            fontSize: 11,
+                            fontSize: 12,
                           ),
                         ),
                       ],
@@ -733,7 +727,7 @@ class _NotificationSettingsScreenState
                   const SizedBox(width: 8),
                   CupertinoSwitch(
                     value: active,
-                    activeTrackColor: AppColors.primaryGreen,
+                    activeTrackColor: const Color(0xFF00A34C),
                     onChanged: isMasterEnabled ? (_) => onToggle() : null,
                   ),
                 ],
@@ -744,7 +738,8 @@ class _NotificationSettingsScreenState
                 height: 1,
                 thickness: 0.5,
                 color: AppColors.border,
-                indent: 62,
+                indent: 16,
+                endIndent: 16,
               ),
           ],
         ),
