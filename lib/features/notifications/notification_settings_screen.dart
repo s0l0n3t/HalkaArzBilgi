@@ -545,7 +545,7 @@ class _NotificationSettingsScreenState
             showDivider: true,
           ),
           _buildCategoryTile(
-            title: 'Haber ve KAP bildirimleri',
+            title: 'Duyuru bildirimleri',
             subtitle: 'Halka arzlar hakkında duyuruları elde et.',
             value: settings.newsEnabled,
             enabled: settings.masterEnabled,
