@@ -113,6 +113,18 @@ class IpoModel {
   /// Henüz BIST'te işlem görmemiş (yaklaşan / yeni) halka arz mı?
   bool get isUpcoming => !isTraded;
 
+  /// Türkçe tarih metinlerindeki baştaki sıfırları temizler (Örn: "05-06 Ekim" -> "5-6 Ekim", "07-08 Aralık" -> "7-8 Aralık", "07 Eylül" -> "7 Eylül")
+  static String formatTurkishDateString(String? text) {
+    if (text == null || text.isEmpty) return '-';
+    return text.replaceAllMapped(RegExp(r'\b0([1-9])\b'), (m) => m[1]!);
+  }
+
+  /// Formatlanmış halka arz tarihleri (baştaki sıfırlar temizlenmiş)
+  String get formattedIpoDates => formatTurkishDateString(ipoDates ?? ipoDate);
+
+  /// Formatlanmış BIST ilk işlem tarihi (baştaki sıfırlar temizlenmiş)
+  String get formattedFirstTradeDate => formatTurkishDateString(firstTradeDate);
+
   /// Hem mockAllIpos hem mockIpos listelerinden sembol bazında arama yapar.
   static IpoModel findBySymbol(String symbol) {
     final traded = mockAllIpos.where((i) => i.symbol == symbol);
@@ -236,7 +248,7 @@ class IpoModel {
       ipoDates: '29-31 Ağustos - 1 Eylül',
       distributionMethod: 'Eşit dağıtım',
       market: 'Yıldız Pazar',
-      firstTradeDate: '07 Eylül',
+      firstTradeDate: '7 Eylül',
       shares: '40.000.000 Lot',
       halkaArzEdilecekPaylar: '40.000.000 Lot',
       katilimEndeksi: 'Evet',
@@ -277,7 +289,7 @@ class IpoModel {
       price: 25.00,
       isTraded: false,
       ipoPrice: '25,00 TL',
-      ipoDates: '05-06 Ekim',
+      ipoDates: '5-6 Ekim',
       distributionMethod: 'Eşit dağıtım',
       market: 'Ana Pazar',
       firstTradeDate: '12 Ekim',
@@ -374,7 +386,7 @@ class IpoModel {
       price: 49.18,
       isTraded: false,
       ipoPrice: '49,18 TL',
-      ipoDates: '07-08 Aralık',
+      ipoDates: '7-8 Aralık',
       distributionMethod: 'Eşit dağıtım',
       market: 'Yıldız Pazar',
       firstTradeDate: '14 Aralık',
@@ -463,7 +475,7 @@ class IpoModel {
     IpoModel(
       symbol: 'AAGYO',
       companyName: 'AA Gayrimenkul Yatırım',
-      ipoDate: '01-02-03 Eylül 2026',
+      ipoDate: '1-2-3 Eylül 2026',
       price: 76.50,
       change: 12.30,
       changePercent: 2.15,
@@ -486,7 +498,7 @@ class IpoModel {
     IpoModel(
       symbol: 'KLNMA',
       companyName: 'Kalınma Holding',
-      ipoDate: '05-06-07 Haziran 2026',
+      ipoDate: '5-6-7 Haziran 2026',
       price: 22.80,
       change: 45.60,
       changePercent: 8.72,
@@ -550,7 +562,7 @@ class IpoModel {
     IpoModel(
       symbol: 'MRKEZ',
       companyName: 'Merkez Yapı Endüstri',
-      ipoDate: '02-03-04 Mart 2026',
+      ipoDate: '2-3-4 Mart 2026',
       price: 9.60,
       change: -14.40,
       changePercent: -6.25,

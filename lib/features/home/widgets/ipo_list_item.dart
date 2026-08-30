@@ -51,7 +51,7 @@ class IpoListItem extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    ipo.ipoDates ?? ipo.ipoDate,
+                    ipo.formattedIpoDates,
                     style: GoogleFonts.inter(
                       color: const Color(0xFF888888),
                       fontSize: 12,

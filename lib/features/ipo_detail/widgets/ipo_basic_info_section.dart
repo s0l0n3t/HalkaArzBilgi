@@ -16,7 +16,7 @@ class IpoBasicInfoSection extends StatelessWidget {
       ),
       _InfoRow(
         label: 'Halka arz tarihleri:',
-        value: ipo.ipoDates ?? ipo.ipoDate,
+        value: ipo.formattedIpoDates,
       ),
       _InfoRow(
         label: 'Dağıtım yöntemi:',
@@ -44,7 +44,7 @@ class IpoBasicInfoSection extends StatelessWidget {
       ),
       _InfoRow(
         label: 'Bist ilk işlem tarihi:',
-        value: ipo.firstTradeDate ?? '-',
+        value: ipo.formattedFirstTradeDate,
       ),
     ];
 

@@ -921,7 +921,7 @@ class _IpoCalendarWidgetState extends State<IpoCalendarWidget>
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
-                              ipos[i].ipoDates ?? ipos[i].ipoDate,
+                              ipos[i].formattedIpoDates,
                               style: GoogleFonts.inter(
                                 color: const Color(0xFF9E9E9E),
                                 fontSize: 10.5,
