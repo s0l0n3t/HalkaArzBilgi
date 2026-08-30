@@ -44,14 +44,6 @@ class NewIposSection extends StatelessWidget {
                   ],
                 );
               }),
-              const SizedBox(height: 12),
-              Text(
-                'Yeni çıkan diğer halka arzlar için tıklayınız.',
-                style: GoogleFonts.inter(
-                  color: const Color(0xFF888888),
-                  fontSize: 12,
-                ),
-              ),
             ],
           ),
         ),
