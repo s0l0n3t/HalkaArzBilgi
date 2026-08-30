@@ -37,10 +37,10 @@ class WatchlistItem extends StatelessWidget {
               decoration: BoxDecoration(
                 border: Border.all(
                     color: const Color(0xFF00B856), width: 1.5),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(4),
               ),
               child: const Center(
-                child: Icon(Icons.close, color: Color(0xFF00B856)),
+                child: Icon(Icons.close, color: Color(0xFF00B856), size: 24),
               ),
             ),
             const SizedBox(width: 12),
@@ -49,33 +49,51 @@ class WatchlistItem extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Hisse Kodu: 16pt SemiBold
                   Text(
                     stats.entry.symbol,
                     style: GoogleFonts.inter(
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       fontSize: 16,
+                      height: 1.2,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 2),
+                  // Lot Bilgisi: 12pt
                   Text(
                     '${stats.entry.lots} lot',
                     style: GoogleFonts.inter(
-                      color: const Color(0xFF888888),
-                      fontSize: 14,
+                      color: const Color(0xFF8E8E93),
+                      fontWeight: FontWeight.w400,
+                      fontSize: 12,
+                      height: 1.2,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 4),
+                  // Maliyet ve Kar/Zarar: 14pt
                   Row(
                     children: [
                       Text(
                         '${stats.totalCost.toStringAsFixed(2).replaceAll('.', ',')} TL',
                         style: GoogleFonts.inter(
                           color: Colors.white,
-                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          fontSize: 14,
+                          height: 1.2,
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      PriceChangeText(change: stats.totalGainLoss),
+                      const SizedBox(width: 6),
+                      PriceChangeText(
+                        change: stats.totalGainLoss,
+                        fontSize: 14,
+                      ),
                     ],
                   ),
                 ],

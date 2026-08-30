@@ -23,39 +23,56 @@ class IpoListItem extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFF00B856)),
-                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF00B856), width: 1.5),
+                borderRadius: BorderRadius.circular(4),
               ),
               child: const Center(
-                child: Icon(Icons.close, color: Color(0xFF00B856)),
+                child: Icon(Icons.close, color: Color(0xFF00B856), size: 24),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Hisse Kodu: 16pt SemiBold
                   Text(
                     ipo.symbol,
                     style: GoogleFonts.inter(
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       fontSize: 16,
+                      height: 1.2,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 2),
+                  // Şirket Adı: 12pt
                   Text(
                     ipo.companyName,
                     style: GoogleFonts.inter(
-                      color: const Color(0xFF888888),
-                      fontSize: 14,
+                      color: const Color(0xFF8E8E93),
+                      fontWeight: FontWeight.w400,
+                      fontSize: 12,
+                      height: 1.2,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 4),
+                  // Halka Arz Tarihi: 14pt
                   Text(
                     ipo.formattedIpoDates,
                     style: GoogleFonts.inter(
-                      color: const Color(0xFF888888),
-                      fontSize: 12,
+                      color: const Color(0xFF8E8E93),
+                      fontWeight: FontWeight.w400,
+                      fontSize: 14,
+                      height: 1.2,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
