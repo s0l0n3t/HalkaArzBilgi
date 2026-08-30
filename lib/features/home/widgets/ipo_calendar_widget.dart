@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:halkaarzbilgi/core/providers/tab_provider.dart';
 import 'package:halkaarzbilgi/core/theme/app_colors.dart';
 import 'package:halkaarzbilgi/features/home/models/ipo_model.dart';
 
-class IpoCalendarWidget extends StatefulWidget {
+class IpoCalendarWidget extends ConsumerStatefulWidget {
   const IpoCalendarWidget({super.key});
 
   @override
-  State<IpoCalendarWidget> createState() => _IpoCalendarWidgetState();
+  ConsumerState<IpoCalendarWidget> createState() => _IpoCalendarWidgetState();
 }
 
-class _IpoCalendarWidgetState extends State<IpoCalendarWidget>
+class _IpoCalendarWidgetState extends ConsumerState<IpoCalendarWidget>
     with SingleTickerProviderStateMixin {
   late PageController _weekPageController;
   late PageController _monthPageController;
@@ -25,6 +27,8 @@ class _IpoCalendarWidgetState extends State<IpoCalendarWidget>
   late final List<DateTime> _availableWeeks;
   int _currentWeekIndex = 0;
   int _currentMonthIndex = 0;
+  int _initialWeekIndex = 0;
+  int _initialMonthIndex = 0;
 
   DateTime? _selectedDate;
   List<IpoModel>? _selectedIpos;
@@ -137,12 +141,14 @@ class _IpoCalendarWidgetState extends State<IpoCalendarWidget>
 
     _currentMonthIndex = _availableMonths.indexOf(todayMonthStart);
     if (_currentMonthIndex == -1) _currentMonthIndex = 0;
+    _initialMonthIndex = _currentMonthIndex;
 
     _currentWeekIndex = _availableWeeks.indexWhere((w) =>
         w.year == thisWeekMonday.year &&
         w.month == thisWeekMonday.month &&
         w.day == thisWeekMonday.day);
     if (_currentWeekIndex == -1) _currentWeekIndex = 0;
+    _initialWeekIndex = _currentWeekIndex;
 
     _monthPageController = PageController(initialPage: _currentMonthIndex);
     _weekPageController = PageController(initialPage: _currentWeekIndex);
@@ -326,65 +332,67 @@ class _IpoCalendarWidgetState extends State<IpoCalendarWidget>
     }
   }
 
+  /// Takvimi bugünün haftasını gösteren tek sıra (haftalık) ilk haline döndürür ve pop-up'ı kapatır
+  void _resetToTodayCollapsed() {
+    if (!mounted) return;
+    setState(() {
+      _isExpanded = false;
+      _currentWeekIndex = _initialWeekIndex;
+      _currentMonthIndex = _initialMonthIndex;
+      _selectedDate = null;
+      _selectedIpos = null;
+      _selectedDayIndex = -1;
+      _selectedRowIndex = 0;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_weekPageController.hasClients) {
+        _weekPageController.jumpToPage(_initialWeekIndex);
+      }
+      if (_monthPageController.hasClients) {
+        _monthPageController.jumpToPage(_initialMonthIndex);
+      }
+    });
+  }
+
   void _toggleExpand([bool? forceState]) {
     final newExpanded = forceState ?? !_isExpanded;
 
-    if (newExpanded) {
-      // Haftalık → Aylık: Mevcut haftanın ayına senkronize et
-      final currentWeekMonday = _availableWeeks[_currentWeekIndex];
-      final midWeek = currentWeekMonday.add(const Duration(days: 3));
-      final todayNorm = DateTime(_today.year, _today.month, _today.day);
-      final weekEnd = currentWeekMonday.add(const Duration(days: 6));
-
-      DateTime targetMonth;
-      if (!todayNorm.isBefore(currentWeekMonday) && !todayNorm.isAfter(weekEnd)) {
-        targetMonth = DateTime(_today.year, _today.month, 1);
-      } else {
-        targetMonth = DateTime(midWeek.year, midWeek.month, 1);
-      }
-
-      int targetIndex = _availableMonths.indexWhere((m) =>
-          m.year == targetMonth.year && m.month == targetMonth.month);
-      if (targetIndex == -1) targetIndex = 0;
-      _currentMonthIndex = targetIndex;
-    } else {
-      // Aylık → Haftalık: Mevcut ayın uygun haftasına senkronize et
-      final monthDate = _availableMonths[_currentMonthIndex];
-      DateTime targetWeekMonday;
-
-      if (monthDate.year == _today.year && monthDate.month == _today.month) {
-        final todayWeekday = _today.weekday;
-        targetWeekMonday = DateTime(_today.year, _today.month, _today.day)
-            .subtract(Duration(days: todayWeekday - 1));
-      } else {
-        targetWeekMonday =
-            monthDate.subtract(Duration(days: monthDate.weekday - 1));
-      }
-
-      int targetIndex = _availableWeeks.indexWhere((w) =>
-          w.year == targetWeekMonday.year &&
-          w.month == targetWeekMonday.month &&
-          w.day == targetWeekMonday.day);
-      if (targetIndex == -1) targetIndex = 0;
-      _currentWeekIndex = targetIndex;
+    if (!newExpanded) {
+      // Takvim kapatıldığında her zaman bugünü gösteren tek sıra ilk haline dön
+      _resetToTodayCollapsed();
+      return;
     }
 
+    // Haftalık → Aylık: Mevcut haftanın ayına senkronize et
+    final currentWeekMonday = _availableWeeks[_currentWeekIndex];
+    final midWeek = currentWeekMonday.add(const Duration(days: 3));
+    final todayNorm = DateTime(_today.year, _today.month, _today.day);
+    final weekEnd = currentWeekMonday.add(const Duration(days: 6));
+
+    DateTime targetMonth;
+    if (!todayNorm.isBefore(currentWeekMonday) && !todayNorm.isAfter(weekEnd)) {
+      targetMonth = DateTime(_today.year, _today.month, 1);
+    } else {
+      targetMonth = DateTime(midWeek.year, midWeek.month, 1);
+    }
+
+    int targetIndex = _availableMonths.indexWhere((m) =>
+        m.year == targetMonth.year && m.month == targetMonth.month);
+    if (targetIndex == -1) targetIndex = 0;
+    _currentMonthIndex = targetIndex;
+
     setState(() {
-      _isExpanded = newExpanded;
+      _isExpanded = true;
       _selectedDate = null;
       _selectedIpos = null;
       _selectedDayIndex = -1;
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (newExpanded) {
-        if (_monthPageController.hasClients) {
-          _monthPageController.jumpToPage(_currentMonthIndex);
-        }
-      } else {
-        if (_weekPageController.hasClients) {
-          _weekPageController.jumpToPage(_currentWeekIndex);
-        }
+      if (_monthPageController.hasClients) {
+        _monthPageController.jumpToPage(_currentMonthIndex);
       }
     });
   }
@@ -401,6 +409,12 @@ class _IpoCalendarWidgetState extends State<IpoCalendarWidget>
 
   @override
   Widget build(BuildContext context) {
+    // Sekme değiştiğinde takvimi bugünkü ilk haline sıfırla
+    ref.listen<int>(tabIndexProvider, (prev, next) {
+      if (prev != next) {
+        _resetToTodayCollapsed();
+      }
+    });
     return TapRegion(
       onTapOutside: (_) => _closeTooltip(),
       child: GestureDetector(
@@ -881,7 +895,7 @@ class _IpoCalendarWidgetState extends State<IpoCalendarWidget>
                           // 1. Satır: Hisse Kodu (Yeşil) + Fiyat (Beyaz) - Tıklanınca hisse detay sayfasına yönlendirir
                           GestureDetector(
                             onTap: () {
-                              _closeTooltip();
+                              _resetToTodayCollapsed();
                               context.push('/ipo/${ipos[i].symbol}');
                             },
                             behavior: HitTestBehavior.opaque,
