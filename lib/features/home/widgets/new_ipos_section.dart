@@ -16,7 +16,7 @@ class NewIposSection extends StatelessWidget {
             // Tappable header
           },
           child: Text(
-            'Yeni Halka Arzlar >',
+            'Yeni Halka Arzlar',
             style: GoogleFonts.inter(
               color: Colors.white,
               fontSize: 18,
