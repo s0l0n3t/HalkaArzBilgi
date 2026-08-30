@@ -29,6 +29,7 @@ class _IpoCalendarWidgetState extends ConsumerState<IpoCalendarWidget>
   int _currentMonthIndex = 0;
   int _initialWeekIndex = 0;
   int _initialMonthIndex = 0;
+  int _monthPageKey = 0; // Aylık PageView'ı her genişlemede sıfırdan oluşturmak için anahtar
 
   DateTime? _selectedDate;
   List<IpoModel>? _selectedIpos;
@@ -383,17 +384,17 @@ class _IpoCalendarWidgetState extends ConsumerState<IpoCalendarWidget>
     if (targetIndex == -1) targetIndex = 0;
     _currentMonthIndex = targetIndex;
 
+    // Controller'ı doğru sayfada oluştur ve PageView'ı tamamen yeniden oluşturmak için key'i artır.
+    // Bu sayede AnimatedSize animasyonu sırasında geçmiş günlerin gri rengi korunur.
+    _monthPageController.dispose();
+    _monthPageController = PageController(initialPage: _currentMonthIndex);
+    _monthPageKey++;
+
     setState(() {
       _isExpanded = true;
       _selectedDate = null;
       _selectedIpos = null;
       _selectedDayIndex = -1;
-    });
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_monthPageController.hasClients) {
-        _monthPageController.jumpToPage(_currentMonthIndex);
-      }
     });
   }
 
@@ -632,6 +633,7 @@ class _IpoCalendarWidgetState extends ConsumerState<IpoCalendarWidget>
                     SizedBox(
                       height: 278.0,
                       child: PageView.builder(
+                        key: ValueKey(_monthPageKey),
                         controller: _monthPageController,
                         itemCount: _availableMonths.length,
                         onPageChanged: (index) {
