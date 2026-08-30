@@ -125,6 +125,12 @@ class NotificationSettingsNotifier extends StateNotifier<NotificationSettingsSta
     await prefs.setBool(_keyMaster, value);
   }
 
+  Future<void> setTavanEnabled(bool value) async {
+    state = state.copyWith(tavanEnabled: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyTavan, value);
+  }
+
   Future<void> toggleTavan() async {
     final newValue = !state.tavanEnabled;
     state = state.copyWith(tavanEnabled: newValue);

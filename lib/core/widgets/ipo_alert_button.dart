@@ -7,6 +7,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/core/providers/auth_provider.dart';
 import 'package:halkaarzbilgi/core/providers/notification_settings_provider.dart';
 import 'package:halkaarzbilgi/core/theme/app_colors.dart';
+import 'package:halkaarzbilgi/core/widgets/notification_permission_bottom_sheet.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 /// Shared alert (bell) button used in AllIposListItem and IpoDetailScreen.
 ///
@@ -102,6 +104,18 @@ class _IpoAlertButtonState extends ConsumerState<IpoAlertButton>
 
     GestureBinding.instance.pointerRouter.addGlobalRoute(onPointerRoute);
 
+    // Uyarı metnini snackbar açılmadan önce bir kez hesapla.
+    // Böylece şalter açıldığında reactive rebuild sırasında metin değişmez.
+    final settings = ref.read(notificationSettingsProvider);
+    final String warningText;
+    if (!settings.masterEnabled && !settings.tavanEnabled) {
+      warningText = 'Bildirimler kapalı olduğu için hisse bildirimi almayacaksınız. Aktif etmek ister misiniz ?';
+    } else if (!settings.masterEnabled) {
+      warningText = 'Anlık bildirimler kapalı olduğu için hisse bildirimi almayacaksınız. Aktif etmek ister misiniz ?';
+    } else {
+      warningText = 'Tavan bildirimleri kapalı olduğu için hisse bildirimi almayacaksınız. Aktif etmek ister misiniz ?';
+    }
+
     final controller = ScaffoldMessenger.of(ctx).showSnackBar(
       SnackBar(
         duration: const Duration(seconds: 15),
@@ -116,6 +130,7 @@ class _IpoAlertButtonState extends ConsumerState<IpoAlertButton>
           },
           child: _TavanWarningSnackBarContent(
             ref: ref,
+            warningText: warningText,
             onToggledOn: () {
               ScaffoldMessenger.of(ctx).hideCurrentSnackBar();
             },
@@ -131,10 +146,10 @@ class _IpoAlertButtonState extends ConsumerState<IpoAlertButton>
       GestureBinding.instance.pointerRouter.removeGlobalRoute(onPointerRoute);
     }
 
-    // After closing, check if tavanEnabled was activated
+    // After closing, check if both masterEnabled and tavanEnabled are activated
     final currentSettings = ref.read(notificationSettingsProvider);
-    if (!currentSettings.tavanEnabled) {
-      // Tavan notifications were not enabled — revert the stock to inactive
+    if (!currentSettings.masterEnabled || !currentSettings.tavanEnabled) {
+      // Notifications were not enabled — revert the stock to inactive
       if (currentSettings.enabledStocks.contains(widget.symbol)) {
         ref.read(notificationSettingsProvider.notifier).toggleStock(widget.symbol);
       }
@@ -156,9 +171,9 @@ class _IpoAlertButtonState extends ConsumerState<IpoAlertButton>
         if (mounted) {
           notifier.toggleStock(widget.symbol);
 
-          // If tavanEnabled is false, show the 15-second warning SnackBar
+          // If masterEnabled or tavanEnabled is false, show the 15-second warning SnackBar
           final updatedSettings = ref.read(notificationSettingsProvider);
-          if (!updatedSettings.tavanEnabled && mounted) {
+          if ((!updatedSettings.masterEnabled || !updatedSettings.tavanEnabled) && mounted) {
             _showTavanWarningSnackBar(context);
           }
         }
@@ -211,14 +226,16 @@ class _IpoAlertButtonState extends ConsumerState<IpoAlertButton>
   }
 }
 
-/// The content widget for the Tavan warning SnackBar.
+/// The content widget for the Tavan & Master warning SnackBar.
 /// Rendered as a dark card with inline CupertinoSwitch.
 class _TavanWarningSnackBarContent extends ConsumerWidget {
   final WidgetRef ref;
+  final String warningText;
   final VoidCallback onToggledOn;
 
   const _TavanWarningSnackBarContent({
     required this.ref,
+    required this.warningText,
     required this.onToggledOn,
   });
 
@@ -226,6 +243,8 @@ class _TavanWarningSnackBarContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef watchRef) {
     final settings = watchRef.watch(notificationSettingsProvider);
     final notifier = watchRef.read(notificationSettingsProvider.notifier);
+
+    final isBothEnabled = settings.masterEnabled && settings.tavanEnabled;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -245,7 +264,7 @@ class _TavanWarningSnackBarContent extends ConsumerWidget {
         children: [
           Expanded(
             child: Text(
-              'Tavan bildirimleri kapalı olduğu için hisse bildirimi almayacaksınız. Aktif etmek ister misiniz ?',
+              warningText,
               style: GoogleFonts.inter(
                 color: Colors.white,
                 fontSize: 13,
@@ -256,15 +275,52 @@ class _TavanWarningSnackBarContent extends ConsumerWidget {
           ),
           const SizedBox(width: 12),
           CupertinoSwitch(
-            value: settings.tavanEnabled,
+            value: isBothEnabled,
             activeTrackColor: const Color(0xFF00A34C),
-            onChanged: (val) {
-              notifier.toggleTavan();
-              if (!settings.masterEnabled) {
-                notifier.setMasterEnabled(true);
-              }
+            onChanged: (val) async {
               if (val) {
-                onToggledOn();
+                if (!settings.masterEnabled) {
+                  // Cihaz bildirim iznini kontrol et
+                  final status = await Permission.notification.status;
+
+                  if (status.isGranted) {
+                    await notifier.setMasterEnabled(true);
+                    if (!settings.tavanEnabled) {
+                      await notifier.setTavanEnabled(true);
+                    }
+                    onToggledOn();
+                  } else if (status.isDenied) {
+                    final result = await Permission.notification.request();
+                    if (result.isGranted) {
+                      await notifier.setMasterEnabled(true);
+                      if (!settings.tavanEnabled) {
+                        await notifier.setTavanEnabled(true);
+                      }
+                      onToggledOn();
+                    } else {
+                      // İzin verilmedi — snackbar'ı kapat ve ayarlara yönlendirme diyaloğunu aç
+                      onToggledOn();
+                      if (context.mounted) {
+                        NotificationPermissionBottomSheet.show(context);
+                      }
+                    }
+                  } else {
+                    // Kalıcı olarak reddedilmiş/kısıtlanmış — ayarlara yönlendirme diyaloğu aç
+                    onToggledOn();
+                    if (context.mounted) {
+                      NotificationPermissionBottomSheet.show(context);
+                    }
+                  }
+                } else {
+                  if (!settings.tavanEnabled) {
+                    await notifier.setTavanEnabled(true);
+                  }
+                  onToggledOn();
+                }
+              } else {
+                if (settings.tavanEnabled) {
+                  await notifier.setTavanEnabled(false);
+                }
               }
             },
           ),
