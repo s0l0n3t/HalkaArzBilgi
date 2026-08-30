@@ -28,7 +28,16 @@ class IpoAccountSection extends ConsumerWidget {
     final isGain = stats.isGain;
     final changeColor =
         isGain ? const Color(0xFF23A983) : const Color(0xFFFF3B30);
-    final changePrefix = isGain ? '+' : '';
+    final changePrefix = isGain ? '+' : '-';
+    final formattedGainLoss =
+        '$changePrefix${stats.totalGainLoss.abs().toStringAsFixed(2).replaceAll('.', ',')} TL (${isGain ? '%' : '-%'}${stats.personalChangePercent.abs().toStringAsFixed(2).replaceAll('.', ',')})';
+
+    final formattedTotalCost = stats.totalCost
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (m) => '${m[1]}.',
+        );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -69,9 +78,10 @@ class IpoAccountSection extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                // Subtitle + Percentage on the same row
+                // 1. Satır: "Satın alınan hisse" ⟷ "4.500 TL" (Toplam Maliyet)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
                       'Satın alınan hisse',
@@ -82,18 +92,32 @@ class IpoAccountSection extends ConsumerWidget {
                         height: 1.2,
                       ),
                     ),
-                    Text(//% gain/loss
-                      '${isGain ? '%' : '-%'}${stats.personalChangePercent.abs().toStringAsFixed(2).replaceAll('.', ',')}',
-                      style: GoogleFonts.inter(
-                        color: changeColor,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: formattedTotalCost,
+                            style: GoogleFonts.inter(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          TextSpan(
+                            text: ' TL',
+                            style: GoogleFonts.inter(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 6),
-                // Lot count + cost and gain/loss on the same baseline
+                // 2. Satır: "100 lot" ⟷ "+449,80 TL (%8,95)" (Lot Sayısı + Kar/Zarar ve Yüzde)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -114,7 +138,7 @@ class IpoAccountSection extends ConsumerWidget {
                           TextSpan(
                             text: ' lot',
                             style: GoogleFonts.inter(
-                              color: const Color(0xFF8E8E93),
+                              color: Colors.white,
                               fontSize: 13,
                               fontWeight: FontWeight.w400,
                             ),
@@ -122,49 +146,14 @@ class IpoAccountSection extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    // Total cost + gain/loss inline on the exact same baseline
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: stats.totalCost
-                                    .toStringAsFixed(0)
-                                    .replaceAllMapped(
-                                      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                                      (m) => '${m[1]}.',
-                                    ),
-                                style: GoogleFonts.inter(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              TextSpan(
-                                text: ' TL',
-                                style: GoogleFonts.inter(
-                                  color: const Color(0xFF8E8E93),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '$changePrefix${stats.totalGainLoss.toStringAsFixed(2).replaceAll('.', ',')} TL',
-                          style: GoogleFonts.inter(
-                            color: changeColor,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                    // Kar / Zarar ve Yüzde birlikte
+                    Text(
+                      formattedGainLoss,
+                      style: GoogleFonts.inter(
+                        color: changeColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
