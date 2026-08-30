@@ -49,6 +49,7 @@ class IpoModel {
   final double? change;
   final double? changePercent;
   final String? logoUrl;
+  final bool isTraded;
 
   // Detay sayfası alanları
   final double? participationIndex;
@@ -104,9 +105,22 @@ class IpoModel {
     this.halkaArzEdilecekPaylar,
     this.tavanSeriDays,
     this.tavanSeriCompleted,
+    this.isTraded = true,
   });
 
   bool get isGain => (change ?? 0) >= 0;
+
+  /// Henüz BIST'te işlem görmemiş (yaklaşan / yeni) halka arz mı?
+  bool get isUpcoming => !isTraded;
+
+  /// Hem mockAllIpos hem mockIpos listelerinden sembol bazında arama yapar.
+  static IpoModel findBySymbol(String symbol) {
+    final traded = mockAllIpos.where((i) => i.symbol == symbol);
+    if (traded.isNotEmpty) return traded.first;
+    final upcoming = mockIpos.where((i) => i.symbol == symbol);
+    if (upcoming.isNotEmpty) return upcoming.first;
+    return mockAllIpos.first;
+  }
 
   static const List<IpoDistributionResult> _defaultDistribution = [
     IpoDistributionResult(
@@ -169,38 +183,224 @@ class IpoModel {
         name: 'Şirket Çalışanları', percent: 3.0, colorHex: '#E74C3C'),
   ];
 
-  /// Henüz çıkmamış halka arzlar (Yeni Halka Arzlar bölümü)
+  /// Henüz çıkmamış / işlem görmemiş yeni halka arzlar (Yeni Halka Arzlar bölümü)
   static const List<IpoModel> mockIpos = [
     IpoModel(
-        symbol: 'ATATR',
-        companyName: 'Ata Turizm İşletmecilik',
-        ipoDate: '08.08.2026',
-        price: 11.20),
+      symbol: 'TABGD',
+      companyName: 'TAB Gıda Sanayi ve Ticaret A.Ş.',
+      ipoDate: '18.10.2026',
+      price: 130.00,
+      isTraded: false,
+      ipoPrice: '130,00 TL',
+      ipoDates: '18-19-20 Ekim',
+      distributionMethod: 'Eşit dağıtım',
+      market: 'Yıldız Pazar',
+      firstTradeDate: '26 Ekim',
+      shares: '52.500.000 Lot',
+      halkaArzEdilecekPaylar: '52.500.000 Lot',
+      katilimEndeksi: 'Evet',
+      halkaAciklikOrani: '%20,09',
+      fiyatIstikrari: '15 Gün',
+      allocationGroups: [
+        AllocationGroup(
+          name: 'Yurt İçi Bireysel Yatırımcılar',
+          percent: 78.0,
+          colorHex: '#00B856',
+        ),
+        AllocationGroup(
+          name: 'Grup Şirket Çalışanları',
+          percent: 2.0,
+          colorHex: '#E74C3C',
+        ),
+        AllocationGroup(
+          name: 'Yurt İçi Kurumsal Yatırımcılar',
+          percent: 20.0,
+          colorHex: '#4A90E2',
+        ),
+      ],
+      documents: [
+        IpoDocument(name: 'İzahname', fileType: 'PDF'),
+        IpoDocument(name: 'Sermaye Piyasası Aracı Notu', fileType: 'PDF'),
+        IpoDocument(name: 'Özet', fileType: 'PDF'),
+        IpoDocument(name: 'Fiyat Tespit Raporu', fileType: 'PDF'),
+        IpoDocument(name: 'Fon Kullanım Raporu', fileType: 'PDF'),
+      ],
+    ),
     IpoModel(
-        symbol: 'SARAE',
-        companyName: 'Saray Enerji',
-        ipoDate: '12.08.2026',
-        price: 35.50),
+      symbol: 'EBEBK',
+      companyName: 'Ebebek Mağazacılık A.Ş.',
+      ipoDate: '29.08.2026',
+      price: 46.50,
+      isTraded: false,
+      ipoPrice: '46,50 TL',
+      ipoDates: '29-31 Ağustos - 1 Eylül',
+      distributionMethod: 'Eşit dağıtım',
+      market: 'Yıldız Pazar',
+      firstTradeDate: '07 Eylül',
+      shares: '40.000.000 Lot',
+      halkaArzEdilecekPaylar: '40.000.000 Lot',
+      katilimEndeksi: 'Evet',
+      halkaAciklikOrani: '%29,41',
+      fiyatIstikrari: '30 Gün',
+      allocationGroups: [
+        AllocationGroup(
+          name: 'Yurt İçi Bireysel Yatırımcılar',
+          percent: 48.0,
+          colorHex: '#00B856',
+        ),
+        AllocationGroup(
+          name: 'Grup Çalışanları',
+          percent: 2.0,
+          colorHex: '#E74C3C',
+        ),
+        AllocationGroup(
+          name: 'Yurt İçi Kurumsal Yatırımcılar',
+          percent: 25.0,
+          colorHex: '#4A90E2',
+        ),
+        AllocationGroup(
+          name: 'Yurt Dışı Kurumsal Yatırımcılar',
+          percent: 25.0,
+          colorHex: '#F5A623',
+        ),
+      ],
+      documents: [
+        IpoDocument(name: 'İzahname', fileType: 'PDF'),
+        IpoDocument(name: 'Sermaye Piyasası Aracı Notu', fileType: 'PDF'),
+        IpoDocument(name: 'Fiyat Tespit Raporu', fileType: 'PDF'),
+      ],
+    ),
     IpoModel(
-        symbol: 'KLNMA',
-        companyName: 'Kalınma Holding',
-        ipoDate: '15.08.2026',
-        price: 22.80),
+      symbol: 'MEKAG',
+      companyName: 'Meka Beton Santralleri A.Ş.',
+      ipoDate: '05.10.2026',
+      price: 25.00,
+      isTraded: false,
+      ipoPrice: '25,00 TL',
+      ipoDates: '05-06 Ekim',
+      distributionMethod: 'Eşit dağıtım',
+      market: 'Ana Pazar',
+      firstTradeDate: '12 Ekim',
+      shares: '16.900.000 Lot',
+      halkaArzEdilecekPaylar: '16.900.000 Lot',
+      katilimEndeksi: 'Evet',
+      halkaAciklikOrani: '%27,04',
+      fiyatIstikrari: 'Planlanmıyor',
+      allocationGroups: [
+        AllocationGroup(
+          name: 'Yurt İçi Bireysel Yatırımcılar',
+          percent: 100.0,
+          colorHex: '#00B856',
+        ),
+      ],
+      documents: [
+        IpoDocument(name: 'İzahname', fileType: 'PDF'),
+        IpoDocument(name: 'Tasarruf Sahiplerine Satış Duyurusu', fileType: 'PDF'),
+        IpoDocument(name: 'Fiyat Tespit Raporu', fileType: 'PDF'),
+      ],
+    ),
     IpoModel(
-        symbol: 'BTCTR',
-        companyName: 'Bitay Kripto Teknoloji',
-        ipoDate: '19.08.2026',
-        price: 48.00),
+      symbol: 'BORLS',
+      companyName: 'Borlease Otomotiv A.Ş.',
+      ipoDate: '11.10.2026',
+      price: 25.29,
+      isTraded: false,
+      ipoPrice: '25,29 TL',
+      ipoDates: '11-12-13 Ekim',
+      distributionMethod: 'Eşit dağıtım',
+      market: 'Yıldız Pazar',
+      firstTradeDate: '19 Ekim',
+      shares: '47.000.000 Lot',
+      halkaArzEdilecekPaylar: '47.000.000 Lot',
+      katilimEndeksi: 'Katılmıyor',
+      halkaAciklikOrani: '%28,05',
+      fiyatIstikrari: '30 Gün',
+      allocationGroups: [
+        AllocationGroup(
+          name: 'Yurt İçi Bireysel Yatırımcılar',
+          percent: 70.0,
+          colorHex: '#00B856',
+        ),
+        AllocationGroup(
+          name: 'Şirket Çalışanları',
+          percent: 5.0,
+          colorHex: '#E74C3C',
+        ),
+        AllocationGroup(
+          name: 'Yurt İçi Kurumsal Yatırımcılar',
+          percent: 25.0,
+          colorHex: '#4A90E2',
+        ),
+      ],
+      documents: [
+        IpoDocument(name: 'İzahname', fileType: 'PDF'),
+        IpoDocument(name: 'Sermaye Piyasası Aracı Notu', fileType: 'PDF'),
+        IpoDocument(name: 'Özet', fileType: 'PDF'),
+      ],
+    ),
     IpoModel(
-        symbol: 'YLDZE',
-        companyName: 'Yıldız Enerji A.Ş.',
-        ipoDate: '25.08.2026',
-        price: 17.40),
+      symbol: 'MHRGY',
+      companyName: 'MHR Gayrimenkul Yatırım Ortaklığı',
+      ipoDate: '12.10.2026',
+      price: 4.30,
+      isTraded: false,
+      ipoPrice: '4,30 TL',
+      ipoDates: '12-13 Ekim',
+      distributionMethod: 'Tamamı Eşit Dağıtım',
+      market: 'Yıldız Pazar',
+      firstTradeDate: '18 Ekim',
+      shares: '207.000.000 Lot',
+      halkaArzEdilecekPaylar: '207.000.000 Lot',
+      katilimEndeksi: 'Evet',
+      halkaAciklikOrani: '%25,03',
+      fiyatIstikrari: 'Planlanmıyor',
+      allocationGroups: [
+        AllocationGroup(
+          name: 'Tüm Yatırımcılar (Eşit Dağıtım)',
+          percent: 100.0,
+          colorHex: '#00B856',
+        ),
+      ],
+      documents: [
+        IpoDocument(name: 'İzahname', fileType: 'PDF'),
+        IpoDocument(name: 'Fiyat Tespit Raporu', fileType: 'PDF'),
+        IpoDocument(name: 'Bağımsız Denetim Raporu', fileType: 'PDF'),
+      ],
+    ),
     IpoModel(
-        symbol: 'MRKEZ',
-        companyName: 'Merkez Yapı Endüstri',
-        ipoDate: '02.09.2026',
-        price: 9.60),
+      symbol: 'SURGY',
+      companyName: 'Sur Tatil Evleri GYO A.Ş.',
+      ipoDate: '07.12.2026',
+      price: 49.18,
+      isTraded: false,
+      ipoPrice: '49,18 TL',
+      ipoDates: '07-08 Aralık',
+      distributionMethod: 'Eşit dağıtım',
+      market: 'Yıldız Pazar',
+      firstTradeDate: '14 Aralık',
+      shares: '45.000.000 Lot',
+      halkaArzEdilecekPaylar: '45.000.000 Lot',
+      katilimEndeksi: 'Evet',
+      halkaAciklikOrani: '%26,79',
+      fiyatIstikrari: '30 Gün',
+      allocationGroups: [
+        AllocationGroup(
+          name: 'Yurt İçi Bireysel Yatırımcılar',
+          percent: 80.0,
+          colorHex: '#00B856',
+        ),
+        AllocationGroup(
+          name: 'Yurt İçi Kurumsal Yatırımcılar',
+          percent: 20.0,
+          colorHex: '#4A90E2',
+        ),
+      ],
+      documents: [
+        IpoDocument(name: 'İzahname', fileType: 'PDF'),
+        IpoDocument(name: 'Sermaye Piyasası Aracı Notu', fileType: 'PDF'),
+        IpoDocument(name: 'Özet', fileType: 'PDF'),
+      ],
+    ),
   ];
 
   /// Geçmişte çıkmış, hali hazırda listelenen halka arzlar (Halka Arzlar bölümü)
@@ -394,5 +594,3 @@ class IpoModel {
     ),
   ];
 }
-
-

@@ -24,10 +24,7 @@ class IpoDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ipo = IpoModel.mockAllIpos.firstWhere(
-      (i) => i.symbol == symbol,
-      orElse: () => IpoModel.mockAllIpos.first,
-    );
+    final ipo = IpoModel.findBySymbol(symbol);
 
     final authState = ref.watch(authProvider);
     final isLoggedIn = authState.status == AuthStatus.authenticated;
@@ -51,7 +48,7 @@ class IpoDetailScreen extends ConsumerWidget {
           ),
         ),
         centerTitle: true,
-        actions: isLoggedIn
+        actions: (isLoggedIn && ipo.isTraded)
             ? [
                 // Alert button — synced with notificationSettingsProvider
                 IpoAlertButton(symbol: ipo.symbol, size: 24),
@@ -73,8 +70,8 @@ class IpoDetailScreen extends ConsumerWidget {
               IpoHeaderSection(ipo: ipo),
               const SizedBox(height: 16),
 
-              // 1.5. Hesabım kartı (portföye eklenmiş hisseler için)
-              if (isLoggedIn) ...[
+              // 1.5. Hesabım kartı (portföye eklenmiş hisseler için — sadece işlem görenler)
+              if (isLoggedIn && ipo.isTraded) ...[
                 IpoAccountSection(symbol: ipo.symbol),
                 const SizedBox(height: 16),
               ],
@@ -84,17 +81,21 @@ class IpoDetailScreen extends ConsumerWidget {
               IpoBasicInfoSection(ipo: ipo),
               const SizedBox(height: 24),
 
-              // 3. Tavan Serisi (Animasyonlu gün daireleri)
-              IpoTavanSection(
-                totalDays: ipo.tavanSeriDays ?? 3,
-                completedDays: ipo.tavanSeriCompleted ?? 2,
-              ),
-              const SizedBox(height: 24),
+              // 3. Tavan Serisi (Animasyonlu gün daireleri) — sadece işlem görenler
+              if (ipo.isTraded) ...[
+                IpoTavanSection(
+                  totalDays: ipo.tavanSeriDays ?? 3,
+                  completedDays: ipo.tavanSeriCompleted ?? 2,
+                ),
+                const SizedBox(height: 24),
+              ],
 
-              // 4. Grafik & Zaman butonları & Yahoo Finance
-              //Grafik için logo ve fiyat bilgilerini buraya ekle
-              IpoGraphSection(ipo: ipo),
-              const SizedBox(height: 28),
+              // 4. Grafik & Zaman butonları & Yahoo Finance — sadece işlem görenler
+              if (ipo.isTraded) ...[
+                //Grafik için logo ve fiyat bilgilerini buraya ekle
+                IpoGraphSection(ipo: ipo),
+                const SizedBox(height: 28),
+              ],
 
               // 5. Tahsisat Grupları
               if (ipo.allocationGroups != null &&
@@ -103,11 +104,12 @@ class IpoDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 28),
               ],
 
-              // 6. Halka Arz Sonuçları
-              if ((ipo.distributionResults != null &&
-                      ipo.distributionResults!.isNotEmpty) ||
-                  (ipo.demandResults != null &&
-                      ipo.demandResults!.isNotEmpty)) ...[
+              // 6. Halka Arz Sonuçları — sadece işlem görenler
+              if (ipo.isTraded &&
+                  ((ipo.distributionResults != null &&
+                          ipo.distributionResults!.isNotEmpty) ||
+                      (ipo.demandResults != null &&
+                          ipo.demandResults!.isNotEmpty))) ...[
                 IpoResultsSection(
                   distributionResults: ipo.distributionResults,
                   demandResults: ipo.demandResults,

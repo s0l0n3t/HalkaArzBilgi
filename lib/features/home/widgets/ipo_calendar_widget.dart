@@ -27,7 +27,7 @@ class _IpoCalendarWidgetState extends State<IpoCalendarWidget>
   int _currentMonthIndex = 0;
 
   DateTime? _selectedDate;
-  IpoModel? _selectedIpo;
+  List<IpoModel>? _selectedIpos;
   int _selectedDayIndex = -1; // 0-6 arası sütun
   int _selectedRowIndex = 0; // Aylık ızgara için satır
 
@@ -53,37 +53,64 @@ class _IpoCalendarWidgetState extends State<IpoCalendarWidget>
     'Pt', 'Sa', 'Ça', 'Pe', 'Cu', 'Ct', 'Pa',
   ];
 
-  // Halka arz tarihlerini hızlı erişim için map olarak tut
-  late final Map<DateTime, IpoModel> _ipoDateMap;
+  // Türkçe ay isimleri eşleme haritası
+  static const Map<String, int> _monthNameToNumber = {
+    'ocak': 1,
+    'şubat': 2,
+    'mart': 3,
+    'nisan': 4,
+    'mayıs': 5,
+    'haziran': 6,
+    'temmuz': 7,
+    'ağustos': 8,
+    'eylül': 9,
+    'ekim': 10,
+    'kasım': 11,
+    'aralık': 12,
+  };
+
+  // Halka arz tarihlerini hızlı erişim için map olarak tut (Aynı günde birden fazla halka arz olabilir)
+  late final Map<DateTime, List<IpoModel>> _ipoDateMap;
 
   @override
   void initState() {
     super.initState();
     _today = DateTime.now();
 
-    // 1. mockIpos tarihlerini ayrıştır ve map'e ekle
+    // 1. mockIpos tarihlerini (ipoDates) ayrıştır ve map'e ekle
     _ipoDateMap = {};
     final Set<DateTime> uniqueMonthStarts = {
       DateTime(_today.year, _today.month, 1),
     };
 
     for (final ipo in IpoModel.mockIpos) {
-      final date = _parseIpoDate(ipo.ipoDate);
-      if (date != null) {
+      final dates = _parseIpoDates(ipo);
+      for (final date in dates) {
         final normalized = DateTime(date.year, date.month, date.day);
-        _ipoDateMap[normalized] = ipo;
+        _ipoDateMap.putIfAbsent(normalized, () => []).add(ipo);
         uniqueMonthStarts.add(DateTime(date.year, date.month, 1));
       }
     }
 
-    // Ayları kronolojik sırala (Sadece halka arz olan aylar ve bugün)
-    _availableMonths = uniqueMonthStarts.toList()
+    // 2. İlk aydan son aya kadar tüm ayları kesintisiz oluştur (Aylar arasında atlama olmaması için)
+    final sortedUnique = uniqueMonthStarts.toList()
       ..sort((a, b) => a.compareTo(b));
+    final firstMonth = sortedUnique.first;
+    final lastMonth = sortedUnique.last;
 
-    // 2. Bu ayları kapsayan haftaları oluştur
-    final firstMonth = _availableMonths.first;
-    final lastMonth = _availableMonths.last;
+    _availableMonths = [];
+    var currentMonth = DateTime(firstMonth.year, firstMonth.month, 1);
+    final endMonth = DateTime(lastMonth.year, lastMonth.month, 1);
+    while (!currentMonth.isAfter(endMonth)) {
+      _availableMonths.add(currentMonth);
+      currentMonth = DateTime(
+        currentMonth.month == 12 ? currentMonth.year + 1 : currentMonth.year,
+        currentMonth.month == 12 ? 1 : currentMonth.month + 1,
+        1,
+      );
+    }
 
+    // 3. Bu ayları kapsayan haftaları oluştur
     final firstMonday =
         firstMonth.subtract(Duration(days: firstMonth.weekday - 1));
     final lastDayOfLastMonth =
@@ -142,6 +169,73 @@ class _IpoCalendarWidgetState extends State<IpoCalendarWidget>
     return null;
   }
 
+  /// `ipoDates` (örn: "18-19-20 Ekim", "29-31 Ağustos - 1 Eylül", "05-06 Ekim") veya `ipoDate` alanından tüm günleri DateTime listesi olarak çıkarır
+  List<DateTime> _parseIpoDates(IpoModel ipo) {
+    final List<DateTime> result = [];
+    int baseYear = _today.year;
+
+    // ipoDate'den (örn: 18.10.2026) yıl almayı dene
+    if (ipo.ipoDate.isNotEmpty) {
+      final parts = ipo.ipoDate.split('.');
+      if (parts.length == 3) {
+        final parsedYear = int.tryParse(parts[2]);
+        if (parsedYear != null) baseYear = parsedYear;
+      }
+    }
+
+    final rawDatesStr = ipo.ipoDates;
+    if (rawDatesStr != null && rawDatesStr.trim().isNotEmpty) {
+      // Birden fazla ay parçası varsa " - " veya "," ile ayrılabilir
+      final segments = rawDatesStr.contains(' - ') && rawDatesStr.contains(RegExp(r'[a-zA-ZçğıöşüÇĞİÖŞÜ]'))
+          ? rawDatesStr.split(RegExp(r'\s+-\s+(?=\d)'))
+          : [rawDatesStr];
+
+      for (final segment in segments) {
+        int? month;
+        final words = segment.trim().toLowerCase().split(RegExp(r'\s+'));
+        for (final word in words) {
+          final cleanWord = word.replaceAll(RegExp(r'[^a-zçğıöşü]'), '');
+          if (_monthNameToNumber.containsKey(cleanWord)) {
+            month = _monthNameToNumber[cleanWord];
+            break;
+          }
+        }
+
+        if (month != null) {
+          final dayPart = segment.replaceAll(RegExp(r'[a-zA-ZçğıöşüÇĞİÖŞÜ]'), '').trim();
+          if (dayPart.contains('-')) {
+            final dayTokens = dayPart.split('-').map((s) => int.tryParse(s.trim())).whereType<int>().toList();
+            if (dayTokens.length == 2 && dayTokens[1] - dayTokens[0] > 1) {
+              // "29-31" gibi aralık
+              for (int d = dayTokens[0]; d <= dayTokens[1]; d++) {
+                result.add(DateTime(baseYear, month, d));
+              }
+            } else {
+              // "18-19-20" veya "05-06" gibi liste
+              for (final d in dayTokens) {
+                result.add(DateTime(baseYear, month, d));
+              }
+            }
+          } else {
+            final singleDay = int.tryParse(dayPart);
+            if (singleDay != null) {
+              result.add(DateTime(baseYear, month, singleDay));
+            }
+          }
+        }
+      }
+    }
+
+    if (result.isEmpty) {
+      final date = _parseIpoDate(ipo.ipoDate);
+      if (date != null) {
+        result.add(date);
+      }
+    }
+
+    return result;
+  }
+
   /// Verilen hafta indeksine göre haftanın başlangıç gününü (Pazartesi) hesapla
   DateTime _getWeekStart(int pageIndex) {
     if (pageIndex >= 0 && pageIndex < _availableWeeks.length) {
@@ -170,26 +264,26 @@ class _IpoCalendarWidgetState extends State<IpoCalendarWidget>
 
   void _onDayTapped(DateTime date, int dayIndex, {int rowIndex = 0}) {
     final normalizedDate = DateTime(date.year, date.month, date.day);
-    final ipo = _ipoDateMap[normalizedDate];
+    final ipos = _ipoDateMap[normalizedDate];
 
     setState(() {
-      if (ipo != null) {
+      if (ipos != null && ipos.isNotEmpty) {
         // Zaten seçili olan güne tekrar tıklandıysa kapat
         if (_selectedDate != null && _isSameDay(_selectedDate!, date)) {
           _selectedDate = null;
-          _selectedIpo = null;
+          _selectedIpos = null;
           _selectedDayIndex = -1;
           _selectedRowIndex = 0;
         } else {
           _selectedDate = date;
-          _selectedIpo = ipo;
+          _selectedIpos = ipos;
           _selectedDayIndex = dayIndex;
           _selectedRowIndex = rowIndex;
         }
       } else {
         // Halka arz olmayan güne tıklandıysa baloncuğu kapat
         _selectedDate = null;
-        _selectedIpo = null;
+        _selectedIpos = null;
         _selectedDayIndex = -1;
         _selectedRowIndex = 0;
       }
@@ -278,7 +372,7 @@ class _IpoCalendarWidgetState extends State<IpoCalendarWidget>
     setState(() {
       _isExpanded = newExpanded;
       _selectedDate = null;
-      _selectedIpo = null;
+      _selectedIpos = null;
       _selectedDayIndex = -1;
     });
 
@@ -296,10 +390,10 @@ class _IpoCalendarWidgetState extends State<IpoCalendarWidget>
   }
 
   void _closeTooltip() {
-    if (_selectedIpo != null || _selectedDate != null) {
+    if (_selectedIpos != null || _selectedDate != null) {
       setState(() {
         _selectedDate = null;
-        _selectedIpo = null;
+        _selectedIpos = null;
         _selectedDayIndex = -1;
       });
     }
@@ -312,7 +406,7 @@ class _IpoCalendarWidgetState extends State<IpoCalendarWidget>
       child: GestureDetector(
         onTap: () {
           // Takvim içindeki boş bir alana tıklandığında açık olan pop-up'ı kapat
-          if (_selectedIpo != null) {
+          if (_selectedIpos != null) {
             _closeTooltip();
           }
         },
@@ -510,7 +604,7 @@ class _IpoCalendarWidgetState extends State<IpoCalendarWidget>
                           setState(() {
                             _currentWeekIndex = index;
                             _selectedDate = null;
-                            _selectedIpo = null;
+                            _selectedIpos = null;
                             _selectedDayIndex = -1;
                           });
                         },
@@ -530,7 +624,7 @@ class _IpoCalendarWidgetState extends State<IpoCalendarWidget>
                           setState(() {
                             _currentMonthIndex = index;
                             _selectedDate = null;
-                            _selectedIpo = null;
+                            _selectedIpos = null;
                             _selectedDayIndex = -1;
                           });
                         },
@@ -546,7 +640,7 @@ class _IpoCalendarWidgetState extends State<IpoCalendarWidget>
               ),
 
               // Floating Pop-up Tooltip (Tüm elemanların ve alt çizginin önünde en üst katmanda açılır)
-              if (_selectedIpo != null && _selectedDayIndex >= 0)
+              if (_selectedIpos != null && _selectedIpos!.isNotEmpty && _selectedDayIndex >= 0)
                 Positioned(
                   top: (!_isExpanded ? 0 : _selectedRowIndex) * 48.0 + 40.0,
                   left: 0,
@@ -728,11 +822,11 @@ class _IpoCalendarWidgetState extends State<IpoCalendarWidget>
 
   /// Tasarımın önünde havada açılan konuşma balonu tooltip (Günün hemen altında açılır)
   Widget _buildFloatingTooltip(double totalWidth) {
-    final ipo = _selectedIpo!;
+    final ipos = _selectedIpos!;
     final columnWidth = totalWidth / 7;
     final dayCenterX = columnWidth * _selectedDayIndex + columnWidth / 2;
     const arrowSize = 5.0;
-    const bubbleWidth = 142.0;
+    const bubbleWidth = 160.0;
 
     // Baloncuğun sol kenarını ekran sınırları içinde tut
     final bubbleLeft =
@@ -759,7 +853,7 @@ class _IpoCalendarWidgetState extends State<IpoCalendarWidget>
                   behavior: HitTestBehavior.opaque,
                   child: Container(
                     width: bubbleWidth,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     decoration: BoxDecoration(
                       color: _tooltipBg,
                       borderRadius: BorderRadius.circular(8),
@@ -771,67 +865,79 @@ class _IpoCalendarWidgetState extends State<IpoCalendarWidget>
                         ),
                       ],
                     ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // 1. Satır: Hisse Kodu (Renk paletindeki yeşil) + Fiyat (Beyaz) - Tıklanınca hisse detay sayfasına yönlendirir
-                      GestureDetector(
-                        onTap: () {
-                          _closeTooltip();
-                          context.push('/ipo/${ipo.symbol}');
-                        },
-                        behavior: HitTestBehavior.opaque,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              ipo.symbol,
-                              style: GoogleFonts.inter(
-                                color: AppColors.primaryGreen,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.3,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (int i = 0; i < ipos.length; i++) ...[
+                          if (i > 0)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 6),
+                              child: Divider(
+                                color: Color(0xFF383838),
+                                height: 1,
+                                thickness: 1,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${ipo.price.toStringAsFixed(2).replaceAll('.', ',')} TL',
-                              style: GoogleFonts.inter(
-                                color: AppColors.textPrimary,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
+                          // 1. Satır: Hisse Kodu (Yeşil) + Fiyat (Beyaz) - Tıklanınca hisse detay sayfasına yönlendirir
+                          GestureDetector(
+                            onTap: () {
+                              _closeTooltip();
+                              context.push('/ipo/${ipos[i].symbol}');
+                            },
+                            behavior: HitTestBehavior.opaque,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  ipos[i].symbol,
+                                  style: GoogleFonts.inter(
+                                    color: AppColors.primaryGreen,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${ipos[i].price.toStringAsFixed(2).replaceAll('.', ',')} TL',
+                                  style: GoogleFonts.inter(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      // 2. Satır: Tarih ve Saat rozeti (Koyu kapsül)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '${ipo.ipoDate}  10:00',
-                          style: GoogleFonts.inter(
-                            color: const Color(0xFF9E9E9E),
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 0.2,
                           ),
-                        ),
-                      ),
-                    ],
+                          const SizedBox(height: 4),
+                          // 2. Satır: Tarih rozeti (Kapsül)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              ipos[i].ipoDates ?? ipos[i].ipoDate,
+                              style: GoogleFonts.inter(
+                                color: const Color(0xFF9E9E9E),
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.2,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
           ),
         ),
       ],
