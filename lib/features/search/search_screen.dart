@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -104,14 +105,55 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       }).toList();
     }
 
-    // 4. Pad to exactly 22 items for the hardcoded grid
-    // In a real squarified treemap, the layout handles N items.
-    // For this specific 22-slot TradingView clone layout:
-    while (list.length < 22) {
-      list.add(HeatmapTileItem.empty());
+    // 4. Mozaik katmanlarına (Dev, Orta, Küçük, Mini, Mikro) dengeli ve karışık olarak dağıt
+    return _distributeStocksAcrossGrid(list, 45);
+  }
+
+  /// Aktif hisseleri ve %0 boş blokları mozaikteki tüm katmanlara (Dev, Orta, Küçük, Mini, Mikro)
+  /// dengeli ve karışık biçimde yerleştirir.
+  List<HeatmapTileItem> _distributeStocksAcrossGrid(List<HeatmapTileItem> activeStocks, int totalSlots) {
+    if (activeStocks.isEmpty) {
+      return List.generate(totalSlots, (_) => HeatmapTileItem.empty());
     }
 
-    return list;
+    // Mozaikteki tüm katmanlara (Dev, Orta, Küçük, Mini, Mikro - Üst ve Alt) dengeli dağılım sırası
+    const slotPriorityOrder = [
+      0,   // Üst Sol Dev Blok (Large)
+      2,   // Üst Sağ Satır 1 (Medium - Flex 6)
+      22,  // Alt Sol Dev Blok (Large)
+      5,   // Üst Sağ Satır 2 (Medium)
+      10,  // Üst Sol Dikey (Small)
+      24,  // Alt Sağ Satır 1 (Medium - Flex 6)
+      13,  // Üst Sağ Mozaik Üst (Small)
+      8,   // Üst Sağ Satır 3 (Medium)
+      27,  // Alt Sağ Satır 2 (Medium)
+      15,  // Üst Sağ Mini (Mini)
+      32,  // Alt Sol Dikey (Small)
+      18,  // Üst Sağ Mikro (Micro)
+      35,  // Alt Sağ Mozaik Üst (Small)
+      30,  // Alt Sağ Satır 3 (Medium)
+      37,  // Alt Sağ Mini (Mini)
+      40,  // Alt Sağ Mikro (Micro)
+      1,   // Üst Sol Dev 2 (Large)
+      3,   // Üst Sağ Satır 1 (Medium - Flex 5)
+      23,  // Alt Sol Dev 2 (Large)
+      4, 6, 7, 9, 11, 12, 14, 16, 17, 19, 20, 21,
+      25, 26, 28, 29, 31, 33, 34, 36, 38, 39, 41, 42, 43, 44,
+    ];
+
+    final result = List<HeatmapTileItem>.generate(
+      totalSlots,
+      (_) => HeatmapTileItem.empty(),
+    );
+
+    for (int i = 0; i < activeStocks.length && i < slotPriorityOrder.length; i++) {
+      final targetSlot = slotPriorityOrder[i];
+      if (targetSlot < totalSlots) {
+        result[targetSlot] = activeStocks[i];
+      }
+    }
+
+    return result;
   }
 
   void _onStockTap(String symbol) {
@@ -278,132 +320,113 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── 1. Top Bar: Geri Butonu (Sol) & Filtre İkonu (Sağ) ──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 4, 12, 0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                    onPressed: () {
-                      if (context.canPop()) {
-                        context.pop();
-                      } else {
-                        context.go('/home');
-                      }
-                    },
-                  ),
-                  IconButton(
-                    icon: Stack(
-                      alignment: Alignment.topRight,
-                      children: [
-                        const Icon(
-                          Icons.tune_rounded,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                        if (_selectedFilter != StockFilter.all)
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: AppColors.primaryGreen,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                      ],
-                    ),
-                    onPressed: _showFilterSheet,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // ── 2. Başlık: Hisse Senetleri ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(
-                'Hisse Senetleri',
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // ── 3. Arama Çubuğu (Pill Shape) ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Container(
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: AppColors.border,
-                    width: 0.5,
-                  ),
-                ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── 1. Başlık & Filtre İkonu: Hisse Senetleri (Aynı Satırda) ──
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 12, 14),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const SizedBox(width: 16),
-                    const Icon(
-                      Icons.search_rounded,
-                      color: AppColors.textSecondary,
-                      size: 22,
+                    Text(
+                      'Hisse Senetleri',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: -0.5,
+                      ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        focusNode: _focusNode,
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          hintText: 'Hisse veya şirket adı ara...',
-                          hintStyle: GoogleFonts.inter(
-                            color: AppColors.textSecondary,
-                            fontSize: 15,
+                    IconButton(
+                      icon: Stack(
+                        alignment: Alignment.topRight,
+                        children: [
+                          const Icon(
+                            Icons.tune_rounded,
+                            color: Colors.white,
+                            size: 22,
                           ),
-                        ),
+                          if (_selectedFilter != StockFilter.all)
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: AppColors.primaryGreen,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                        ],
                       ),
+                      onPressed: _showFilterSheet,
                     ),
-                    if (_searchQuery.isNotEmpty)
-                      IconButton(
-                        icon: const Icon(
-                          Icons.close_rounded,
-                          color: AppColors.textSecondary,
-                          size: 20,
-                        ),
-                        onPressed: () {
-                          _searchController.clear();
-                          _focusNode.unfocus();
-                        },
-                      ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
 
-            // ── 4. Dinamik İçerik (AsyncValue Yükleme, Hata, Veri Durumları) ──
-            Expanded(
-              child: AnimatedSwitcher(
+              // ── 2. Arama Çubuğu (Pill Shape) ──
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: AppColors.border,
+                      width: 0.5,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 16),
+                      const Icon(
+                        Icons.search_rounded,
+                        color: AppColors.textSecondary,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          focusNode: _focusNode,
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            hintText: 'Hisse veya şirket adı ara...',
+                            hintStyle: GoogleFonts.inter(
+                              color: AppColors.textSecondary,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (_searchQuery.isNotEmpty)
+                        IconButton(
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            color: AppColors.textSecondary,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            _searchController.clear();
+                            _focusNode.unfocus();
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 15),
+
+              // ── 3. Dinamik İçerik (AsyncValue Yükleme, Hata, Veri Durumları) ──
+              AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
                 switchInCurve: Curves.easeIn,
                 switchOutCurve: Curves.easeOut,
@@ -414,10 +437,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ),
                   error: (err, stack) => Center(
                     key: const ValueKey('search_error'),
-                    child: Text(
-                      'Veriler yüklenirken hata oluştu: $err',
-                      style: const TextStyle(color: Colors.red),
-                      textAlign: TextAlign.center,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      child: Text(
+                        'Veriler yüklenirken hata oluştu: $err',
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   ),
                   data: (rawStocks) {
@@ -436,8 +462,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   },
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -447,32 +473,35 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget _buildListView(List<HeatmapTileItem> results) {
     if (results.isEmpty || (results.every((s) => s.isEmpty))) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.search_off_rounded,
-              color: AppColors.textSecondary,
-              size: 48,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Sonuç bulunamadı',
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Başka bir arama yapmayı deneyin',
-              style: GoogleFonts.inter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 60),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.search_off_rounded,
                 color: AppColors.textSecondary,
-                fontSize: 13,
+                size: 48,
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Text(
+                'Sonuç bulunamadı',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Başka bir arama yapmayı deneyin',
+                style: GoogleFonts.inter(
+                  color: AppColors.textSecondary,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -481,6 +510,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final validResults = results.where((s) => !s.isEmpty).toList();
 
     return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       itemCount: validResults.length,
       separatorBuilder: (_, _) => const SizedBox(height: 8),
@@ -579,6 +610,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (changePercent == 0) return _heatmapNeutral;
 
     final absChange = changePercent.abs();
+    if (absChange == 0) {
+      return const Color(0xFF1E222D);
+    }
     if (isGain) {
       final maxVal = maxGain > 0 ? maxGain : 1.0;
       final ratio = (absChange / maxVal).clamp(0.0, 1.0);
@@ -592,7 +626,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
   }
 
-  // ── Gelişmiş Mozaik Isı Haritası (TradingView / Görsel 3 Treemap) ──
+  // ── Gelişmiş İki Katmanlı Zengin Mozaik Isı Haritası (45 Hisse Treemap) ──
   Widget _buildAdvancedHeatmap(List<HeatmapTileItem> items) {
     // Dinamik max artış/düşüş hesapla (mutlak değerler)
     final gains = items.where((i) => i.isGain && !i.isEmpty).map((i) => i.changePercent.abs());
@@ -600,21 +634,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final maxGain = gains.isNotEmpty ? gains.reduce((a, b) => a > b ? a : b) : 1.0;
     final maxLoss = losses.isNotEmpty ? losses.reduce((a, b) => a > b ? a : b) : 1.0;
 
-    return SingleChildScrollView(
+    return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
       child: Column(
         children: [
-          // ── ÜST BLOK: Sol Büyük Kareler + Sağ Çok Katmanlı Izgara ──
+          // ── 1. ÜST MOZAİK GRUBU (1-22. Hisse — Yükseklik: 520px) ───────────
           SizedBox(
             height: 520,
             child: Row(
               children: [
-                // ── SOL SÜTUN (MSFT & GOOGL gibi Dev Bloklar) ─────────
+                // Sol Sütun: 2 Dev Blok (items 0, 1)
                 Expanded(
                   flex: 10,
                   child: Column(
                     children: [
-                      // SARAE (+39.92%)
                       Expanded(
                         child: _buildHeatmapTile(
                           stock: items[0],
@@ -624,7 +657,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      // ATATR (+34.42%)
                       Expanded(
                         child: _buildHeatmapTile(
                           stock: items[1],
@@ -638,12 +670,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 ),
                 const SizedBox(width: 2),
 
-                // ── SAĞ SÜTUN (Çok Katmanlı Izgara) ───────────────────
+                // Sağ Sütun: Çok Katmanlı Izgara
                 Expanded(
                   flex: 10,
                   child: Column(
                     children: [
-                      // 1. Satır: META (+134.23%) & ORCL (+45.33%)
+                      // 1. Satır: 2 Orta Blok (items 2, 3)
                       Expanded(
                         flex: 13,
                         child: Row(
@@ -651,7 +683,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             Expanded(
                               flex: 6,
                               child: _buildHeatmapTile(
-                                stock: items[2], // AAGYO (+134.23%)
+                                stock: items[2],
                                 size: HeatmapTileSize.medium,
                                 maxGain: maxGain,
                                 maxLoss: maxLoss,
@@ -661,7 +693,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             Expanded(
                               flex: 5,
                               child: _buildHeatmapTile(
-                                stock: items[3], // KLNMA (+45.33%)
+                                stock: items[3],
                                 size: HeatmapTileSize.medium,
                                 maxGain: maxGain,
                                 maxLoss: maxLoss,
@@ -672,227 +704,281 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       ),
                       const SizedBox(height: 2),
 
-                      // 2. Satır: ADBE (+44.12%), CSCO (+7.98%), CRM (+57.16%)
+                      // 2. Satır: 3 Orta Blok (items 4, 5, 6)
                       Expanded(
                         flex: 11,
                         child: Row(
                           children: [
-                            Expanded(
-                              child: _buildHeatmapTile(
-                                stock: items[4], // BTCTR
-                                size: HeatmapTileSize.medium,
-                                maxGain: maxGain,
-                                maxLoss: maxLoss,
-                              ),
-                            ),
+                            Expanded(child: _buildHeatmapTile(stock: items[4], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
                             const SizedBox(width: 2),
-                            Expanded(
-                              child: _buildHeatmapTile(
-                                stock: items[5], // YLDZE
-                                size: HeatmapTileSize.medium,
-                                maxGain: maxGain,
-                                maxLoss: maxLoss,
-                              ),
-                            ),
+                            Expanded(child: _buildHeatmapTile(stock: items[5], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
                             const SizedBox(width: 2),
-                            Expanded(
-                              child: _buildHeatmapTile(
-                                stock: items[6], // MRKEZ
-                                size: HeatmapTileSize.medium,
-                                maxGain: maxGain,
-                                maxLoss: maxLoss,
-                              ),
-                            ),
+                            Expanded(child: _buildHeatmapTile(stock: items[6], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
                           ],
                         ),
                       ),
                       const SizedBox(height: 2),
 
-                      // 3. Satır: ACN (+15.22%), NFLX (+47.69%), INTU (+15.57%)
+                      // 3. Satır: 3 Orta Blok (items 7, 8, 9)
                       Expanded(
                         flex: 11,
                         child: Row(
                           children: [
-                            Expanded(
-                              child: _buildHeatmapTile(
-                                stock: items[7], // DENIZ
-                                size: HeatmapTileSize.medium,
-                                maxGain: maxGain,
-                                maxLoss: maxLoss,
-                              ),
-                            ),
+                            Expanded(child: _buildHeatmapTile(stock: items[7], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
                             const SizedBox(width: 2),
-                            Expanded(
-                              child: _buildHeatmapTile(
-                                stock: items[8], // KCHOL
-                                size: HeatmapTileSize.medium,
-                                maxGain: maxGain,
-                                maxLoss: maxLoss,
-                              ),
-                            ),
+                            Expanded(child: _buildHeatmapTile(stock: items[8], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
                             const SizedBox(width: 2),
-                            Expanded(
-                              child: _buildHeatmapTile(
-                                stock: items[9], // THYAO
-                                size: HeatmapTileSize.medium,
-                                maxGain: maxGain,
-                                maxLoss: maxLoss,
-                              ),
-                            ),
+                            Expanded(child: _buildHeatmapTile(stock: items[9], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
                           ],
                         ),
                       ),
                       const SizedBox(height: 2),
 
-                      // 4. Bölüm (Alt Karma Izgara: Sol dikey 3 blok + Sağ mozaik) ───
+                      // 4. Bölüm (Alt Karma Izgara: Sol dikey 3 blok + Sağ mozaik)
                       Expanded(
                         flex: 20,
                         child: Row(
                           children: [
-                            // Sol dikey 3 blok: TUPRS (-5.30%), ASELS (+42.51%), EREGL (-9.19%)
+                            // Sol dikey 3 blok (items 10, 11, 12)
                             Expanded(
                               flex: 4,
                               child: Column(
                                 children: [
-                                  Expanded(
-                                    child: _buildHeatmapTile(
-                                      stock: items[10], // TUPRS
-                                      size: HeatmapTileSize.small,
-                                      maxGain: maxGain,
-                                      maxLoss: maxLoss,
-                                    ),
-                                  ),
+                                  Expanded(child: _buildHeatmapTile(stock: items[10], size: HeatmapTileSize.small, maxGain: maxGain, maxLoss: maxLoss)),
                                   const SizedBox(height: 2),
-                                  Expanded(
-                                    child: _buildHeatmapTile(
-                                      stock: items[11], // ASELS
-                                      size: HeatmapTileSize.small,
-                                      maxGain: maxGain,
-                                      maxLoss: maxLoss,
-                                    ),
-                                  ),
+                                  Expanded(child: _buildHeatmapTile(stock: items[11], size: HeatmapTileSize.small, maxGain: maxGain, maxLoss: maxLoss)),
                                   const SizedBox(height: 2),
-                                  Expanded(
-                                    child: _buildHeatmapTile(
-                                      stock: items[12], // EREGL
-                                      size: HeatmapTileSize.small,
-                                      maxGain: maxGain,
-                                      maxLoss: maxLoss,
-                                    ),
-                                  ),
+                                  Expanded(child: _buildHeatmapTile(stock: items[12], size: HeatmapTileSize.small, maxGain: maxGain, maxLoss: maxLoss)),
                                 ],
                               ),
                             ),
                             const SizedBox(width: 2),
 
-                            // Sağ Mozaik Izgara (Küçük ve Minik Kareler)
+                            // Sağ Mozaik Izgara (items 13..21)
                             Expanded(
                               flex: 6,
                               child: Column(
                                 children: [
-                                  // Üst Küçük Satır (BIMAS & GARAN)
+                                  // Üst Küçük Satır (items 13, 14)
                                   Expanded(
                                     flex: 3,
                                     child: Row(
                                       children: [
-                                        Expanded(
-                                          child: _buildHeatmapTile(
-                                            stock: items[13], // BIMAS (+80.91%)
-                                            size: HeatmapTileSize.small,
-                                            maxGain: maxGain,
-                                            maxLoss: maxLoss,
-                                          ),
-                                        ),
+                                        Expanded(child: _buildHeatmapTile(stock: items[13], size: HeatmapTileSize.small, maxGain: maxGain, maxLoss: maxLoss)),
                                         const SizedBox(width: 2),
-                                        Expanded(
-                                          child: _buildHeatmapTile(
-                                            stock: items[14], // GARAN (-4.15%)
-                                            size: HeatmapTileSize.small,
-                                            maxGain: maxGain,
-                                            maxLoss: maxLoss,
-                                          ),
-                                        ),
+                                        Expanded(child: _buildHeatmapTile(stock: items[14], size: HeatmapTileSize.small, maxGain: maxGain, maxLoss: maxLoss)),
                                       ],
                                     ),
                                   ),
                                   const SizedBox(height: 2),
 
-                                  // Orta Mini Satır (SISE, SAHOL, PGSUS)
+                                  // Orta Mini Satır (items 15, 16, 17)
                                   Expanded(
                                     flex: 2,
                                     child: Row(
                                       children: [
-                                        Expanded(
-                                          child: _buildHeatmapTile(
-                                            stock: items[15], // SISE
-                                            size: HeatmapTileSize.mini,
-                                            maxGain: maxGain,
-                                            maxLoss: maxLoss,
-                                          ),
-                                        ),
+                                        Expanded(child: _buildHeatmapTile(stock: items[15], size: HeatmapTileSize.mini, maxGain: maxGain, maxLoss: maxLoss)),
                                         const SizedBox(width: 2),
-                                        Expanded(
-                                          child: _buildHeatmapTile(
-                                            stock: items[16], // SAHOL
-                                            size: HeatmapTileSize.mini,
-                                            maxGain: maxGain,
-                                            maxLoss: maxLoss,
-                                          ),
-                                        ),
+                                        Expanded(child: _buildHeatmapTile(stock: items[16], size: HeatmapTileSize.mini, maxGain: maxGain, maxLoss: maxLoss)),
                                         const SizedBox(width: 2),
-                                        Expanded(
-                                          child: _buildHeatmapTile(
-                                            stock: items[17], // PGSUS
-                                            size: HeatmapTileSize.mini,
-                                            maxGain: maxGain,
-                                            maxLoss: maxLoss,
-                                          ),
-                                        ),
+                                        Expanded(child: _buildHeatmapTile(stock: items[17], size: HeatmapTileSize.mini, maxGain: maxGain, maxLoss: maxLoss)),
                                       ],
                                     ),
                                   ),
                                   const SizedBox(height: 2),
 
-                                  // Alt Micro Satır (FROTO, KOZAL, PETKM, AKBNK)
+                                  // Alt Micro Satır (items 18, 19, 20, 21)
                                   Expanded(
                                     flex: 2,
                                     child: Row(
                                       children: [
-                                        Expanded(
-                                          child: _buildHeatmapTile(
-                                            stock: items[18], // FROTO
-                                            size: HeatmapTileSize.micro,
-                                            maxGain: maxGain,
-                                            maxLoss: maxLoss,
-                                          ),
-                                        ),
+                                        Expanded(child: _buildHeatmapTile(stock: items[18], size: HeatmapTileSize.micro, maxGain: maxGain, maxLoss: maxLoss)),
                                         const SizedBox(width: 2),
-                                        Expanded(
-                                          child: _buildHeatmapTile(
-                                            stock: items[19], // KOZAL
-                                            size: HeatmapTileSize.micro,
-                                            maxGain: maxGain,
-                                            maxLoss: maxLoss,
-                                          ),
-                                        ),
+                                        Expanded(child: _buildHeatmapTile(stock: items[19], size: HeatmapTileSize.micro, maxGain: maxGain, maxLoss: maxLoss)),
                                         const SizedBox(width: 2),
-                                        Expanded(
-                                          child: _buildHeatmapTile(
-                                            stock: items[20], // PETKM
-                                            size: HeatmapTileSize.micro,
-                                            maxGain: maxGain,
-                                            maxLoss: maxLoss,
-                                          ),
-                                        ),
+                                        Expanded(child: _buildHeatmapTile(stock: items[20], size: HeatmapTileSize.micro, maxGain: maxGain, maxLoss: maxLoss)),
                                         const SizedBox(width: 2),
-                                        Expanded(
-                                          child: _buildHeatmapTile(
-                                            stock: items[21], // AKBNK
-                                            size: HeatmapTileSize.micro,
-                                            maxGain: maxGain,
-                                            maxLoss: maxLoss,
-                                          ),
-                                        ),
+                                        Expanded(child: _buildHeatmapTile(stock: items[21], size: HeatmapTileSize.micro, maxGain: maxGain, maxLoss: maxLoss)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 2),
+
+          // ── 2. ALT MOZAİK GRUBU (23-45. Hisse — Yükseklik: 520px) ───────────
+          SizedBox(
+            height: 520,
+            child: Row(
+              children: [
+                // Sol Sütun: 2 Büyük Blok (items 22, 23)
+                Expanded(
+                  flex: 10,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: _buildHeatmapTile(
+                          stock: items[22],
+                          size: HeatmapTileSize.large,
+                          maxGain: maxGain,
+                          maxLoss: maxLoss,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Expanded(
+                        child: _buildHeatmapTile(
+                          stock: items[23],
+                          size: HeatmapTileSize.large,
+                          maxGain: maxGain,
+                          maxLoss: maxLoss,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 2),
+
+                // Sağ Sütun: Çok Katmanlı Izgara
+                Expanded(
+                  flex: 10,
+                  child: Column(
+                    children: [
+                      // 1. Satır: 2 Orta Blok (items 24, 25)
+                      Expanded(
+                        flex: 13,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 6,
+                              child: _buildHeatmapTile(
+                                stock: items[24],
+                                size: HeatmapTileSize.medium,
+                                maxGain: maxGain,
+                                maxLoss: maxLoss,
+                              ),
+                            ),
+                            const SizedBox(width: 2),
+                            Expanded(
+                              flex: 5,
+                              child: _buildHeatmapTile(
+                                stock: items[25],
+                                size: HeatmapTileSize.medium,
+                                maxGain: maxGain,
+                                maxLoss: maxLoss,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+
+                      // 2. Satır: 3 Orta Blok (items 26, 27, 28)
+                      Expanded(
+                        flex: 11,
+                        child: Row(
+                          children: [
+                            Expanded(child: _buildHeatmapTile(stock: items[26], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
+                            const SizedBox(width: 2),
+                            Expanded(child: _buildHeatmapTile(stock: items[27], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
+                            const SizedBox(width: 2),
+                            Expanded(child: _buildHeatmapTile(stock: items[28], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+
+                      // 3. Satır: 3 Orta Blok (items 29, 30, 31)
+                      Expanded(
+                        flex: 11,
+                        child: Row(
+                          children: [
+                            Expanded(child: _buildHeatmapTile(stock: items[29], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
+                            const SizedBox(width: 2),
+                            Expanded(child: _buildHeatmapTile(stock: items[30], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
+                            const SizedBox(width: 2),
+                            Expanded(child: _buildHeatmapTile(stock: items[31], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+
+                      // 4. Bölüm (Alt Karma Izgara: Sol dikey 3 blok + Sağ mozaik)
+                      Expanded(
+                        flex: 20,
+                        child: Row(
+                          children: [
+                            // Sol dikey 3 blok (items 32, 33, 34)
+                            Expanded(
+                              flex: 4,
+                              child: Column(
+                                children: [
+                                  Expanded(child: _buildHeatmapTile(stock: items[32], size: HeatmapTileSize.small, maxGain: maxGain, maxLoss: maxLoss)),
+                                  const SizedBox(height: 2),
+                                  Expanded(child: _buildHeatmapTile(stock: items[33], size: HeatmapTileSize.small, maxGain: maxGain, maxLoss: maxLoss)),
+                                  const SizedBox(height: 2),
+                                  Expanded(child: _buildHeatmapTile(stock: items[34], size: HeatmapTileSize.small, maxGain: maxGain, maxLoss: maxLoss)),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 2),
+
+                            // Sağ Mozaik Izgara (items 35..44 - 10 hisse)
+                            Expanded(
+                              flex: 6,
+                              child: Column(
+                                children: [
+                                  // Üst Küçük Satır (items 35, 36)
+                                  Expanded(
+                                    flex: 3,
+                                    child: Row(
+                                      children: [
+                                        Expanded(child: _buildHeatmapTile(stock: items[35], size: HeatmapTileSize.small, maxGain: maxGain, maxLoss: maxLoss)),
+                                        const SizedBox(width: 2),
+                                        Expanded(child: _buildHeatmapTile(stock: items[36], size: HeatmapTileSize.small, maxGain: maxGain, maxLoss: maxLoss)),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+
+                                  // Orta Mini Satır (items 37, 38, 39)
+                                  Expanded(
+                                    flex: 2,
+                                    child: Row(
+                                      children: [
+                                        Expanded(child: _buildHeatmapTile(stock: items[37], size: HeatmapTileSize.mini, maxGain: maxGain, maxLoss: maxLoss)),
+                                        const SizedBox(width: 2),
+                                        Expanded(child: _buildHeatmapTile(stock: items[38], size: HeatmapTileSize.mini, maxGain: maxGain, maxLoss: maxLoss)),
+                                        const SizedBox(width: 2),
+                                        Expanded(child: _buildHeatmapTile(stock: items[39], size: HeatmapTileSize.mini, maxGain: maxGain, maxLoss: maxLoss)),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+
+                                  // Alt Micro Satır (items 40, 41, 42, 43, 44 - 5 hisse!)
+                                  Expanded(
+                                    flex: 2,
+                                    child: Row(
+                                      children: [
+                                        Expanded(child: _buildHeatmapTile(stock: items[40], size: HeatmapTileSize.micro, maxGain: maxGain, maxLoss: maxLoss)),
+                                        const SizedBox(width: 2),
+                                        Expanded(child: _buildHeatmapTile(stock: items[41], size: HeatmapTileSize.micro, maxGain: maxGain, maxLoss: maxLoss)),
+                                        const SizedBox(width: 2),
+                                        Expanded(child: _buildHeatmapTile(stock: items[42], size: HeatmapTileSize.micro, maxGain: maxGain, maxLoss: maxLoss)),
+                                        const SizedBox(width: 2),
+                                        Expanded(child: _buildHeatmapTile(stock: items[43], size: HeatmapTileSize.micro, maxGain: maxGain, maxLoss: maxLoss)),
+                                        const SizedBox(width: 2),
+                                        Expanded(child: _buildHeatmapTile(stock: items[44], size: HeatmapTileSize.micro, maxGain: maxGain, maxLoss: maxLoss)),
                                       ],
                                     ),
                                   ),
@@ -1088,9 +1174,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     final style = logoStyles[symbol] ??
         (
-          const Color(0xFFFFFFFF),
-          const Color(0xFF00B856),
-          symbol.isNotEmpty ? symbol.substring(0, 1) : 'X'
+          symbol.isNotEmpty ? const Color(0xFFFFFFFF) : const Color(0xFF2A2A30),
+          symbol.isNotEmpty ? const Color(0xFF00B856) : const Color(0xFF8E8E93),
+          symbol.isNotEmpty ? symbol.substring(0, 1) : '-'
         );
 
     return Container(

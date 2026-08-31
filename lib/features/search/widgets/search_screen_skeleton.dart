@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:halkaarzbilgi/core/theme/app_colors.dart';
 import 'package:halkaarzbilgi/core/widgets/shimmer_loading.dart';
 
+enum _SkeletonTileSize { large, medium, small, mini, micro }
+
 /// Arama ve Piyasa (SearchScreen) sayfası için Isı Haritası / Liste görünümü Skeleton bileşeni.
 /// aria-busy="true" karşılığı liveRegion: true ile yükleme durumunu duyurur.
+/// İki Katmanlı Zengin Asimetrik Mozaik Treemap (45 Hisse: 22 Üst + 23 Alt) geometrisi ile 1:1 eşleşir.
 class SearchScreenSkeleton extends StatelessWidget {
   final bool isSearching;
 
@@ -27,6 +30,7 @@ class SearchScreenSkeleton extends StatelessWidget {
   /// Arama Listesi Görünümü Skeleton
   Widget _buildListSkeleton() {
     return ListView.separated(
+      shrinkWrap: true,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       physics: const NeverScrollableScrollPhysics(),
       itemCount: 8,
@@ -99,115 +103,340 @@ class SearchScreenSkeleton extends StatelessWidget {
     );
   }
 
-  /// TradingView Isı Haritası Mozaik Geometrisini Koruyan Skeleton
+  /// İki Katmanlı Zengin Mozaik Treemap Geometrisini Birebir Koruyan Skeleton (45 Hisse)
   Widget _buildHeatmapSkeleton() {
-    return SingleChildScrollView(
-      physics: const NeverScrollableScrollPhysics(),
+    return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
       child: ShimmerLoading(
         child: Column(
           children: [
-            // Üst blok: Sol büyük kareler + Sağ ızgara
+            // ── 1. ÜST MOZAİK GRUBU (1-22. Hisse — 520px) ───────────────────
             SizedBox(
               height: 520,
               child: Row(
                 children: [
-                  // Sol sütun (2 büyük kare)
+                  // Sol Sütun: 2 Dev Blok
                   Expanded(
                     flex: 10,
                     child: Column(
                       children: [
                         Expanded(
-                          child: _buildTileSkeleton(const Color(0xFF1B2E26)),
+                          child: _buildTileSkeleton(
+                            size: _SkeletonTileSize.large,
+                            bg: const Color(0xFF1B2E26),
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Expanded(
-                          child: _buildTileSkeleton(const Color(0xFF1B2E26)),
+                          child: _buildTileSkeleton(
+                            size: _SkeletonTileSize.large,
+                            bg: const Color(0xFF1B2E26),
+                          ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(width: 2),
 
-                  // Sağ sütun
+                  // Sağ Sütun: Çok Katmanlı Izgara
                   Expanded(
-                    flex: 11,
+                    flex: 10,
                     child: Column(
                       children: [
-                        // Üst satır (2 orta kare)
+                        // 1. Satır: 2 Orta Blok (Flex 6 ve Flex 5)
+                        Expanded(
+                          flex: 13,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 6,
+                                child: _buildTileSkeleton(
+                                  size: _SkeletonTileSize.medium,
+                                  bg: const Color(0xFF1B2E26),
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              Expanded(
+                                flex: 5,
+                                child: _buildTileSkeleton(
+                                  size: _SkeletonTileSize.medium,
+                                  bg: const Color(0xFF1B2E26),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+
+                        // 2. Satır: 3 Orta Blok
                         Expanded(
                           flex: 11,
                           child: Row(
                             children: [
-                              Expanded(
-                                child: _buildTileSkeleton(const Color(0xFF2C1E1E)),
-                              ),
+                              Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.medium, bg: const Color(0xFF1B2E26))),
                               const SizedBox(width: 2),
-                              Expanded(
-                                child: _buildTileSkeleton(const Color(0xFF1B2E26)),
-                              ),
+                              Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.medium, bg: const Color(0xFF1B2E26))),
+                              const SizedBox(width: 2),
+                              Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.medium, bg: const Color(0xFF1B2E26))),
                             ],
                           ),
                         ),
                         const SizedBox(height: 2),
 
-                        // Orta satır (3 küçük kare)
+                        // 3. Satır: 3 Orta Blok
                         Expanded(
-                          flex: 9,
+                          flex: 11,
                           child: Row(
                             children: [
-                              Expanded(
-                                child: _buildTileSkeleton(const Color(0xFF222226)),
-                              ),
+                              Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.medium, bg: const Color(0xFF1B2E26))),
                               const SizedBox(width: 2),
-                              Expanded(
-                                child: _buildTileSkeleton(const Color(0xFF1B2E26)),
-                              ),
+                              Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.medium, bg: const Color(0xFF1B2E26))),
                               const SizedBox(width: 2),
-                              Expanded(
-                                child: _buildTileSkeleton(const Color(0xFF2C1E1E)),
-                              ),
+                              Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.medium, bg: const Color(0xFF1B2E26))),
                             ],
                           ),
                         ),
                         const SizedBox(height: 2),
 
-                        // Alt mikro grid (2 satır)
+                        // 4. Bölüm (Alt Karma Izgara)
                         Expanded(
-                          flex: 10,
-                          child: Column(
+                          flex: 20,
+                          child: Row(
                             children: [
+                              // Sol Dikey 3 Blok
                               Expanded(
-                                child: Row(
+                                flex: 4,
+                                child: Column(
                                   children: [
+                                    Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.small, bg: const Color(0xFF2C1E1E))),
+                                    const SizedBox(height: 2),
+                                    Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.small, bg: const Color(0xFF1B2E26))),
+                                    const SizedBox(height: 2),
+                                    Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.small, bg: const Color(0xFF2C1E1E))),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+
+                              // Sağ Mozaik
+                              Expanded(
+                                flex: 6,
+                                child: Column(
+                                  children: [
+                                    // Üst Küçük Satır (2 Blok)
                                     Expanded(
-                                      child: _buildTileSkeleton(const Color(0xFF222226)),
+                                      flex: 3,
+                                      child: Row(
+                                        children: [
+                                          Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.small, bg: const Color(0xFF1B2E26))),
+                                          const SizedBox(width: 2),
+                                          Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.small, bg: const Color(0xFF2C1E1E))),
+                                        ],
+                                      ),
                                     ),
-                                    const SizedBox(width: 2),
+                                    const SizedBox(height: 2),
+
+                                    // Orta Mini Satır (3 Blok)
                                     Expanded(
-                                      child: _buildTileSkeleton(const Color(0xFF1B2E26)),
+                                      flex: 2,
+                                      child: Row(
+                                        children: [
+                                          Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.mini, bg: const Color(0xFF222226))),
+                                          const SizedBox(width: 2),
+                                          Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.mini, bg: const Color(0xFF1B2E26))),
+                                          const SizedBox(width: 2),
+                                          Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.mini, bg: const Color(0xFF222226))),
+                                        ],
+                                      ),
                                     ),
-                                    const SizedBox(width: 2),
+                                    const SizedBox(height: 2),
+
+                                    // Alt Micro Satır (4 Blok)
                                     Expanded(
-                                      child: _buildTileSkeleton(const Color(0xFF222226)),
+                                      flex: 2,
+                                      child: Row(
+                                        children: [
+                                          Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.micro, bg: const Color(0xFF222226))),
+                                          const SizedBox(width: 2),
+                                          Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.micro, bg: const Color(0xFF1B2E26))),
+                                          const SizedBox(width: 2),
+                                          Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.micro, bg: const Color(0xFF222226))),
+                                          const SizedBox(width: 2),
+                                          Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.micro, bg: const Color(0xFF1B2E26))),
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 2),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 2),
+
+            // ── 2. ALT MOZAİK GRUBU (23-45. Hisse — 520px) ───────────────────
+            SizedBox(
+              height: 520,
+              child: Row(
+                children: [
+                  // Sol Sütun: 2 Büyük Blok
+                  Expanded(
+                    flex: 10,
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: _buildTileSkeleton(
+                            size: _SkeletonTileSize.large,
+                            bg: const Color(0xFF1B2E26),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Expanded(
+                          child: _buildTileSkeleton(
+                            size: _SkeletonTileSize.large,
+                            bg: const Color(0xFF1B2E26),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+
+                  // Sağ Sütun: Çok Katmanlı Izgara
+                  Expanded(
+                    flex: 10,
+                    child: Column(
+                      children: [
+                        // 1. Satır: 2 Orta Blok (Flex 6 ve Flex 5)
+                        Expanded(
+                          flex: 13,
+                          child: Row(
+                            children: [
                               Expanded(
-                                child: Row(
+                                flex: 6,
+                                child: _buildTileSkeleton(
+                                  size: _SkeletonTileSize.medium,
+                                  bg: const Color(0xFF1B2E26),
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              Expanded(
+                                flex: 5,
+                                child: _buildTileSkeleton(
+                                  size: _SkeletonTileSize.medium,
+                                  bg: const Color(0xFF1B2E26),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+
+                        // 2. Satır: 3 Orta Blok
+                        Expanded(
+                          flex: 11,
+                          child: Row(
+                            children: [
+                              Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.medium, bg: const Color(0xFF1B2E26))),
+                              const SizedBox(width: 2),
+                              Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.medium, bg: const Color(0xFF1B2E26))),
+                              const SizedBox(width: 2),
+                              Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.medium, bg: const Color(0xFF1B2E26))),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+
+                        // 3. Satır: 3 Orta Blok
+                        Expanded(
+                          flex: 11,
+                          child: Row(
+                            children: [
+                              Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.medium, bg: const Color(0xFF1B2E26))),
+                              const SizedBox(width: 2),
+                              Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.medium, bg: const Color(0xFF1B2E26))),
+                              const SizedBox(width: 2),
+                              Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.medium, bg: const Color(0xFF1B2E26))),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+
+                        // 4. Bölüm (Alt Karma Izgara)
+                        Expanded(
+                          flex: 20,
+                          child: Row(
+                            children: [
+                              // Sol Dikey 3 Blok
+                              Expanded(
+                                flex: 4,
+                                child: Column(
                                   children: [
+                                    Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.small, bg: const Color(0xFF2C1E1E))),
+                                    const SizedBox(height: 2),
+                                    Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.small, bg: const Color(0xFF1B2E26))),
+                                    const SizedBox(height: 2),
+                                    Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.small, bg: const Color(0xFF2C1E1E))),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+
+                              // Sağ Mozaik (10 Blok)
+                              Expanded(
+                                flex: 6,
+                                child: Column(
+                                  children: [
+                                    // Üst Küçük Satır (2 Blok)
                                     Expanded(
-                                      child: _buildTileSkeleton(const Color(0xFF2C1E1E)),
+                                      flex: 3,
+                                      child: Row(
+                                        children: [
+                                          Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.small, bg: const Color(0xFF1B2E26))),
+                                          const SizedBox(width: 2),
+                                          Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.small, bg: const Color(0xFF2C1E1E))),
+                                        ],
+                                      ),
                                     ),
-                                    const SizedBox(width: 2),
+                                    const SizedBox(height: 2),
+
+                                    // Orta Mini Satır (3 Blok)
                                     Expanded(
-                                      child: _buildTileSkeleton(const Color(0xFF222226)),
+                                      flex: 2,
+                                      child: Row(
+                                        children: [
+                                          Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.mini, bg: const Color(0xFF222226))),
+                                          const SizedBox(width: 2),
+                                          Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.mini, bg: const Color(0xFF1B2E26))),
+                                          const SizedBox(width: 2),
+                                          Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.mini, bg: const Color(0xFF222226))),
+                                        ],
+                                      ),
                                     ),
-                                    const SizedBox(width: 2),
+                                    const SizedBox(height: 2),
+
+                                    // Alt Micro Satır (5 Blok)
                                     Expanded(
-                                      child: _buildTileSkeleton(const Color(0xFF1B2E26)),
+                                      flex: 2,
+                                      child: Row(
+                                        children: [
+                                          Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.micro, bg: const Color(0xFF222226))),
+                                          const SizedBox(width: 2),
+                                          Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.micro, bg: const Color(0xFF1B2E26))),
+                                          const SizedBox(width: 2),
+                                          Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.micro, bg: const Color(0xFF222226))),
+                                          const SizedBox(width: 2),
+                                          Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.micro, bg: const Color(0xFF1B2E26))),
+                                          const SizedBox(width: 2),
+                                          Expanded(child: _buildTileSkeleton(size: _SkeletonTileSize.micro, bg: const Color(0xFF222226))),
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -227,19 +456,38 @@ class SearchScreenSkeleton extends StatelessWidget {
     );
   }
 
-  Widget _buildTileSkeleton(Color bg) {
+  Widget _buildTileSkeleton({
+    required _SkeletonTileSize size,
+    required Color bg,
+  }) {
     return Container(
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      width: double.infinity,
+      height: double.infinity,
+      color: bg,
+      padding: const EdgeInsets.all(4),
+      alignment: Alignment.center,
+      child: _buildTileContentSkeleton(size),
+    );
+  }
+
+  Widget _buildTileContentSkeleton(_SkeletonTileSize size) {
+    switch (size) {
+      case _SkeletonTileSize.large:
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 36,
-              height: 12,
+              width: 54,
+              height: 54,
+              decoration: const BoxDecoration(
+                color: Color(0xFF2E2E33),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              width: 58,
+              height: 18,
               decoration: BoxDecoration(
                 color: const Color(0xFF38383E),
                 borderRadius: BorderRadius.circular(3),
@@ -247,7 +495,40 @@ class SearchScreenSkeleton extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Container(
-              width: 28,
+              width: 46,
+              height: 14,
+              decoration: BoxDecoration(
+                color: const Color(0xFF2E2E33),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ],
+        );
+
+      case _SkeletonTileSize.medium:
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: const BoxDecoration(
+                color: Color(0xFF2E2E33),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Container(
+              width: 38,
+              height: 12,
+              decoration: BoxDecoration(
+                color: const Color(0xFF38383E),
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Container(
+              width: 30,
               height: 10,
               decoration: BoxDecoration(
                 color: const Color(0xFF2E2E33),
@@ -255,8 +536,64 @@ class SearchScreenSkeleton extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
+        );
+
+      case _SkeletonTileSize.small:
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 24,
+              height: 24,
+              decoration: const BoxDecoration(
+                color: Color(0xFF2E2E33),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Container(
+              width: 30,
+              height: 9,
+              decoration: BoxDecoration(
+                color: const Color(0xFF38383E),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Container(
+              width: 24,
+              height: 8,
+              decoration: BoxDecoration(
+                color: const Color(0xFF2E2E33),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ],
+        );
+
+      case _SkeletonTileSize.mini:
+        return Center(
+          child: Container(
+            width: 22,
+            height: 22,
+            decoration: const BoxDecoration(
+              color: Color(0xFF2E2E33),
+              shape: BoxShape.circle,
+            ),
+          ),
+        );
+
+      case _SkeletonTileSize.micro:
+        return Center(
+          child: Container(
+            width: 16,
+            height: 16,
+            decoration: const BoxDecoration(
+              color: Color(0xFF2E2E33),
+              shape: BoxShape.circle,
+            ),
+          ),
+        );
+    }
   }
 }
