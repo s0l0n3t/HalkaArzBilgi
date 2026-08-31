@@ -215,7 +215,12 @@ class _NewsScreenState extends ConsumerState<NewsScreen> {
 
             // ── 4. Ana İçerik Alanı ──
             Expanded(
-              child: _buildContent(newsState, notifier),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeIn,
+                switchOutCurve: Curves.easeOut,
+                child: _buildContent(newsState, notifier),
+              ),
             ),
           ],
         ),
@@ -269,6 +274,7 @@ class _NewsScreenState extends ConsumerState<NewsScreen> {
     // 2. Yükleme Durumu (Skeleton — aria-busy karşılığı liveRegion)
     if (state.isLoading) {
       return Semantics(
+        key: const ValueKey('news_loading_skeleton'),
         container: true,
         liveRegion: true,
         label: 'Haberler yükleniyor, lütfen bekleyin',
@@ -290,6 +296,7 @@ class _NewsScreenState extends ConsumerState<NewsScreen> {
     final filtered = state.filteredNews;
     if (filtered.isEmpty) {
       return Center(
+        key: const ValueKey('news_empty'),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -322,6 +329,7 @@ class _NewsScreenState extends ConsumerState<NewsScreen> {
 
     // 4. Başarılı Veri Durumu
     return Semantics(
+      key: const ValueKey('news_data_list'),
       container: true,
       label: 'Haber listesi',
       child: RefreshIndicator(

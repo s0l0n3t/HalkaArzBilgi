@@ -6,9 +6,15 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/core/providers/watchlist_provider.dart';
 import 'package:halkaarzbilgi/core/theme/app_colors.dart';
 import 'package:halkaarzbilgi/features/home/widgets/watchlist_item.dart';
+import 'package:halkaarzbilgi/features/portfolio/widgets/portfolio_skeleton.dart';
 
 class PortfolioScreen extends ConsumerWidget {
-  const PortfolioScreen({super.key});
+  final bool isLoading;
+
+  const PortfolioScreen({
+    super.key,
+    this.isLoading = false,
+  });
 
   static const List<Color> _sliceColors = [
     Color(0xFF00B856), // Green
@@ -51,13 +57,23 @@ class PortfolioScreen extends ConsumerWidget {
         centerTitle: true,
       ),
       body: SafeArea(
-        child: entries.isEmpty
-            ? _buildEmptyState()
-            : SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          switchInCurve: Curves.easeIn,
+          switchOutCurve: Curves.easeOut,
+          child: isLoading
+              ? const PortfolioSkeleton(key: ValueKey('portfolio_skeleton'))
+              : entries.isEmpty
+                  ? KeyedSubtree(
+                      key: const ValueKey('portfolio_empty_state'),
+                      child: _buildEmptyState(),
+                    )
+                  : SingleChildScrollView(
+                      key: const ValueKey('portfolio_content'),
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                     // ── 1. Donut Pasta Grafiği Kartı ──────────────────────
                     _buildDonutChartCard(
                       entries: entries,
@@ -106,6 +122,7 @@ class PortfolioScreen extends ConsumerWidget {
                   ],
                 ),
               ),
+        ),
       ),
     );
   }

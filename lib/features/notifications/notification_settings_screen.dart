@@ -10,6 +10,7 @@ import 'package:halkaarzbilgi/core/theme/app_colors.dart';
 import 'package:halkaarzbilgi/core/widgets/auth_bottom_sheet.dart';
 import 'package:halkaarzbilgi/core/widgets/notification_permission_bottom_sheet.dart';
 import 'package:halkaarzbilgi/features/home/models/stock_model.dart';
+import 'package:halkaarzbilgi/features/notifications/widgets/notification_settings_skeleton.dart';
 
 class NotificationSettingsScreen extends ConsumerStatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -81,18 +82,7 @@ class _NotificationSettingsScreenState
           ),
         ),
       ),
-      body: allStocksAsync.when(
-        data: (stocks) => _buildBody(context, settings, notifier, stocks, isLoggedIn),
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primaryGreen),
-        ),
-        error: (error, _) => Center(
-          child: Text(
-            'Hisseler yüklenirken hata oluştu: $error',
-            style: GoogleFonts.inter(color: Colors.white70),
-          ),
-        ),
-      ),
+      body: _buildBody(context, settings, notifier, allStocksAsync, isLoggedIn),
     );
   }
 
@@ -100,15 +90,9 @@ class _NotificationSettingsScreenState
     BuildContext context,
     NotificationSettingsState settings,
     NotificationSettingsNotifier notifier,
-    List<StockModel> stocks,
+    AsyncValue<List<StockModel>> allStocksAsync,
     bool isLoggedIn,
   ) {
-    final filteredStocks = stocks.where((stock) {
-      if (_searchQuery.isEmpty) return true;
-      return stock.symbol.toLowerCase().contains(_searchQuery) ||
-          stock.companyName.toLowerCase().contains(_searchQuery);
-    }).toList();
-
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -192,82 +176,93 @@ class _NotificationSettingsScreenState
                                               _buildSearchBar(),
                                               const SizedBox(height: 12),
 
-                                              // Stock Items List
-                                              if (filteredStocks.isEmpty)
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                          vertical: 40),
-                                                  child: Center(
-                                                    child: Column(
-                                                      children: [
-                                                        Icon(
-                                                          Icons
-                                                              .search_off_rounded,
-                                                          size: 40,
-                                                          color: AppColors
-                                                              .textSecondary
-                                                              .withValues(
-                                                                  alpha: 0.5),
-                                                        ),
-                                                        const SizedBox(
-                                                            height: 8),
-                                                        Text(
-                                                          'Aradığınız hisse bulunamadı',
-                                                          style:
-                                                              GoogleFonts.inter(
-                                                            color: AppColors
-                                                                .textSecondary,
-                                                            fontSize: 14,
-                                                          ),
-                                                        ),
-                                                      ],
+                                              // Stock Items List (Skeleton sadece burada yükleme sürerken çalışır)
+                                              AnimatedSwitcher(
+                                                duration: const Duration(milliseconds: 300),
+                                                switchInCurve: Curves.easeIn,
+                                                switchOutCurve: Curves.easeOut,
+                                                child: allStocksAsync.when(
+                                                  loading: () => const NotificationStockListSkeleton(
+                                                    key: ValueKey('stock_list_skeleton'),
+                                                  ),
+                                                  error: (error, _) => Center(
+                                                    key: const ValueKey('stock_list_error'),
+                                                    child: Padding(
+                                                      padding: const EdgeInsets.symmetric(vertical: 24.0),
+                                                      child: Text(
+                                                        'Hisseler yüklenirken hata oluştu: $error',
+                                                        style: GoogleFonts.inter(color: Colors.white70),
+                                                      ),
                                                     ),
                                                   ),
-                                                )
-                                              else
-                                                ListView.builder(
-                                                  shrinkWrap: true,
-                                                  physics:
-                                                      const NeverScrollableScrollPhysics(),
-                                                  itemCount:
-                                                      filteredStocks.length,
-                                                  itemBuilder: (context, index) {
-                                                    final stock =
-                                                        filteredStocks[index];
-                                                    final isFirst = index == 0;
-                                                    final isLast = index ==
-                                                        filteredStocks.length -
-                                                            1;
-                                                    final isEnabled = settings
-                                                        .enabledStocks
-                                                        .contains(stock.symbol);
+                                                  data: (stocks) {
+                                                    final filteredStocks = stocks.where((stock) {
+                                                      if (_searchQuery.isEmpty) return true;
+                                                      return stock.symbol.toLowerCase().contains(_searchQuery) ||
+                                                          stock.companyName.toLowerCase().contains(_searchQuery);
+                                                    }).toList();
 
-                                                    return _buildStockItem(
-                                                      stock: stock,
-                                                      isEnabled: isEnabled,
-                                                      isFirst: isFirst,
-                                                      isLast: isLast,
-                                                      isMasterEnabled: settings
-                                                          .masterEnabled,
-                                                      onToggle: () => notifier
-                                                          .toggleStock(
-                                                              stock.symbol),
+                                                    if (filteredStocks.isEmpty) {
+                                                      return Padding(
+                                                        key: const ValueKey('stock_list_empty'),
+                                                        padding: const EdgeInsets.symmetric(vertical: 40),
+                                                        child: Center(
+                                                          child: Column(
+                                                            children: [
+                                                              Icon(
+                                                                Icons.search_off_rounded,
+                                                                size: 40,
+                                                                color: AppColors.textSecondary.withValues(alpha: 0.5),
+                                                              ),
+                                                              const SizedBox(height: 8),
+                                                              Text(
+                                                                'Aradığınız hisse bulunamadı',
+                                                                style: GoogleFonts.inter(
+                                                                  color: AppColors.textSecondary,
+                                                                  fontSize: 14,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      );
+                                                    }
+
+                                                    return ListView.builder(
+                                                      key: const ValueKey('stock_list_loaded'),
+                                                      shrinkWrap: true,
+                                                      physics: const NeverScrollableScrollPhysics(),
+                                                      itemCount: filteredStocks.length,
+                                                      itemBuilder: (context, index) {
+                                                        final stock = filteredStocks[index];
+                                                        final isFirst = index == 0;
+                                                        final isLast = index == filteredStocks.length - 1;
+                                                        final isEnabled = settings.enabledStocks.contains(stock.symbol);
+
+                                                        return _buildStockItem(
+                                                          stock: stock,
+                                                          isEnabled: isEnabled,
+                                                          isFirst: isFirst,
+                                                          isLast: isLast,
+                                                          isMasterEnabled: settings.masterEnabled,
+                                                          onToggle: () => notifier.toggleStock(stock.symbol),
+                                                        );
+                                                      },
                                                     );
                                                   },
                                                 ),
+                                              ),
                                               const SizedBox(height: 32),
                                             ],
                                           )
-                                        : const SizedBox(
-                                            width: double.infinity),
+                                        : const SizedBox.shrink(),
                                   ),
                                 ),
                               ),
                             ),
                           ],
                         )
-                      : const SizedBox(width: double.infinity),
+                      : const SizedBox.shrink(),
                 ),
               ),
             ),

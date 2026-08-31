@@ -8,9 +8,15 @@ import 'package:halkaarzbilgi/features/home/widgets/guest_sticky_banner.dart';
 import 'package:halkaarzbilgi/features/home/widgets/ipo_calendar_widget.dart';
 import 'package:halkaarzbilgi/features/home/widgets/new_ipos_section.dart';
 import 'package:halkaarzbilgi/features/home/widgets/watchlist_section.dart';
+import 'package:halkaarzbilgi/features/home/widgets/home_screen_skeleton.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key});
+  final bool isLoading;
+
+  const HomeScreen({
+    super.key,
+    this.isLoading = false,
+  });
 
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
@@ -58,21 +64,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Stack(
-          children: [
-            // Scroll content
-            isLoggedIn
-                ? _buildLoggedInBody()
-                : _buildGuestBody(),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          switchInCurve: Curves.easeIn,
+          switchOutCurve: Curves.easeOut,
+          child: widget.isLoading
+              ? HomeScreenSkeleton(
+                  key: const ValueKey('home_skeleton'),
+                  isLoggedIn: isLoggedIn,
+                )
+              : Stack(
+                  key: const ValueKey('home_content'),
+                  children: [
+                    // Scroll content
+                    isLoggedIn
+                        ? _buildLoggedInBody()
+                        : _buildGuestBody(),
 
-            // Floating banner (sadece giriş yapmamış kullanıcılar)
-            if (!isLoggedIn)
-              const Positioned(
-                top: 24,
-                left: 0,
-                right: 0,
-                child: GuestFloatingBanner(),
-              ),
+                    // Floating banner (sadece giriş yapmamış kullanıcılar)
+                    if (!isLoggedIn)
+                      const Positioned(
+                        top: 24,
+                        left: 0,
+                        right: 0,
+                        child: GuestFloatingBanner(),
+                      ),
 
             // Scroll-to-top button
             Positioned(
@@ -107,8 +123,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   /// Giriş yapmış kullanıcılar: mevcut SingleChildScrollView akışı.
   Widget _buildLoggedInBody() {

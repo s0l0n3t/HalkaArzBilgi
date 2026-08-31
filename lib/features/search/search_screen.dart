@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:halkaarzbilgi/core/providers/market_provider.dart';
 import 'package:halkaarzbilgi/core/providers/tab_provider.dart';
 import 'package:halkaarzbilgi/features/home/models/stock_model.dart';
+import 'package:halkaarzbilgi/features/search/widgets/search_screen_skeleton.dart';
 
 enum HeatmapTileSize { large, medium, small, mini, micro }
 
@@ -402,27 +403,38 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
             // ── 4. Dinamik İçerik (AsyncValue Yükleme, Hata, Veri Durumları) ──
             Expanded(
-              child: asyncStocks.when(
-                loading: () => const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.primaryGreen,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeIn,
+                switchOutCurve: Curves.easeOut,
+                child: asyncStocks.when(
+                  loading: () => SearchScreenSkeleton(
+                    key: const ValueKey('search_loading_skeleton'),
+                    isSearching: isSearching,
                   ),
-                ),
-                error: (err, stack) => Center(
-                  child: Text(
-                    'Veriler yüklenirken hata oluştu: $err',
-                    style: const TextStyle(color: Colors.red),
-                    textAlign: TextAlign.center,
+                  error: (err, stack) => Center(
+                    key: const ValueKey('search_error'),
+                    child: Text(
+                      'Veriler yüklenirken hata oluştu: $err',
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                ),
-                data: (rawStocks) {
-                  final mappedStocks = _getMappedStocks(rawStocks);
+                  data: (rawStocks) {
+                    final mappedStocks = _getMappedStocks(rawStocks);
 
-                  if (isSearching) {
-                    return _buildListView(mappedStocks);
-                  }
-                  return _buildAdvancedHeatmap(mappedStocks);
-                },
+                    if (isSearching) {
+                      return KeyedSubtree(
+                        key: const ValueKey('search_list_data'),
+                        child: _buildListView(mappedStocks),
+                      );
+                    }
+                    return KeyedSubtree(
+                      key: const ValueKey('search_heatmap_data'),
+                      child: _buildAdvancedHeatmap(mappedStocks),
+                    );
+                  },
+                ),
               ),
             ),
           ],
