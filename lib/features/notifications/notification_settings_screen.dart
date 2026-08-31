@@ -102,169 +102,132 @@ class _NotificationSettingsScreenState
           // 1. Master Switch Card
           _buildMasterSwitchCard(settings, notifier, isLoggedIn),
 
-          // 2. Animated Collapsible Lower Section
-          ClipRect(
-            child: AnimatedSize(
-              duration: const Duration(milliseconds: 350),
-              curve: Curves.easeInOutCubic,
-              alignment: Alignment.topCenter,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 300),
-                opacity: (settings.masterEnabled && isLoggedIn) ? 1.0 : 0.0,
-                curve: Curves.easeInOut,
-                child: AnimatedSlide(
-                  duration: const Duration(milliseconds: 350),
-                  offset: (settings.masterEnabled && isLoggedIn)
-                      ? Offset.zero
-                      : const Offset(0, -0.06),
-                  curve: Curves.easeInOutCubic,
-                  child: (settings.masterEnabled && isLoggedIn)
-                      ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 24),
+          // 2. Animated Collapsible Lower Section (Yukarıdan aşağıya akordiyon)
+          AccordionSection(
+            isExpanded: settings.masterEnabled && isLoggedIn,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 24),
 
-                            // Notification Channels Header
-                            Text(
-                              'Bilgilendirme',
-                              style: GoogleFonts.inter(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
+                // Notification Channels Header
+                Text(
+                  'Bilgilendirme',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Categories Card
+                _buildCategoriesCard(settings, notifier),
+
+                // 3. Nested Collapsible Stock Preferences Section (Tavan bildirimlerine bağlı akordiyon)
+                AccordionSection(
+                  isExpanded: settings.tavanEnabled,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 24),
+
+                      // Stock Notifications Header
+                      Text(
+                        'Hisse tercihleri',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Search Bar
+                      _buildSearchBar(),
+                      const SizedBox(height: 12),
+
+                      // Stock Items List (Skeleton sadece burada yükleme sürerken çalışır)
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        switchInCurve: Curves.easeIn,
+                        switchOutCurve: Curves.easeOut,
+                        child: allStocksAsync.when(
+                          loading: () => const NotificationStockListSkeleton(
+                            key: ValueKey('stock_list_skeleton'),
+                          ),
+                          error: (error, _) => Center(
+                            key: const ValueKey('stock_list_error'),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24.0),
+                              child: Text(
+                                'Hisseler yüklenirken hata oluştu: $error',
+                                style: GoogleFonts.inter(color: Colors.white70),
                               ),
                             ),
-                            const SizedBox(height: 10),
+                          ),
+                          data: (stocks) {
+                            final filteredStocks = stocks.where((stock) {
+                              if (_searchQuery.isEmpty) return true;
+                              return stock.symbol.toLowerCase().contains(_searchQuery) ||
+                                  stock.companyName.toLowerCase().contains(_searchQuery);
+                            }).toList();
 
-                            // Categories Card
-                            _buildCategoriesCard(settings, notifier),
-
-                            // 3. Animated Collapsible Stock Preferences Section (Tavan bildirimlerine bağlı)
-                            ClipRect(
-                              child: AnimatedSize(
-                                duration: const Duration(milliseconds: 350),
-                                curve: Curves.easeInOutCubic,
-                                alignment: Alignment.topCenter,
-                                child: AnimatedOpacity(
-                                  duration: const Duration(milliseconds: 300),
-                                  opacity: settings.tavanEnabled ? 1.0 : 0.0,
-                                  curve: Curves.easeInOut,
-                                  child: AnimatedSlide(
-                                    duration: const Duration(milliseconds: 350),
-                                    offset: settings.tavanEnabled
-                                        ? Offset.zero
-                                        : const Offset(0, -0.06),
-                                    curve: Curves.easeInOutCubic,
-                                    child: settings.tavanEnabled
-                                        ? Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              const SizedBox(height: 24),
-
-                                              // Stock Notifications Header
-                                              Text(
-                                                'Hisse tercihleri',
-                                                style: GoogleFonts.inter(
-                                                  color: Colors.white,
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 10),
-
-                                              // Search Bar
-                                              _buildSearchBar(),
-                                              const SizedBox(height: 12),
-
-                                              // Stock Items List (Skeleton sadece burada yükleme sürerken çalışır)
-                                              AnimatedSwitcher(
-                                                duration: const Duration(milliseconds: 300),
-                                                switchInCurve: Curves.easeIn,
-                                                switchOutCurve: Curves.easeOut,
-                                                child: allStocksAsync.when(
-                                                  loading: () => const NotificationStockListSkeleton(
-                                                    key: ValueKey('stock_list_skeleton'),
-                                                  ),
-                                                  error: (error, _) => Center(
-                                                    key: const ValueKey('stock_list_error'),
-                                                    child: Padding(
-                                                      padding: const EdgeInsets.symmetric(vertical: 24.0),
-                                                      child: Text(
-                                                        'Hisseler yüklenirken hata oluştu: $error',
-                                                        style: GoogleFonts.inter(color: Colors.white70),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  data: (stocks) {
-                                                    final filteredStocks = stocks.where((stock) {
-                                                      if (_searchQuery.isEmpty) return true;
-                                                      return stock.symbol.toLowerCase().contains(_searchQuery) ||
-                                                          stock.companyName.toLowerCase().contains(_searchQuery);
-                                                    }).toList();
-
-                                                    if (filteredStocks.isEmpty) {
-                                                      return Padding(
-                                                        key: const ValueKey('stock_list_empty'),
-                                                        padding: const EdgeInsets.symmetric(vertical: 40),
-                                                        child: Center(
-                                                          child: Column(
-                                                            children: [
-                                                              Icon(
-                                                                Icons.search_off_rounded,
-                                                                size: 40,
-                                                                color: AppColors.textSecondary.withValues(alpha: 0.5),
-                                                              ),
-                                                              const SizedBox(height: 8),
-                                                              Text(
-                                                                'Aradığınız hisse bulunamadı',
-                                                                style: GoogleFonts.inter(
-                                                                  color: AppColors.textSecondary,
-                                                                  fontSize: 14,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                      );
-                                                    }
-
-                                                    return ListView.builder(
-                                                      key: const ValueKey('stock_list_loaded'),
-                                                      shrinkWrap: true,
-                                                      physics: const NeverScrollableScrollPhysics(),
-                                                      itemCount: filteredStocks.length,
-                                                      itemBuilder: (context, index) {
-                                                        final stock = filteredStocks[index];
-                                                        final isFirst = index == 0;
-                                                        final isLast = index == filteredStocks.length - 1;
-                                                        final isEnabled = settings.enabledStocks.contains(stock.symbol);
-
-                                                        return _buildStockItem(
-                                                          stock: stock,
-                                                          isEnabled: isEnabled,
-                                                          isFirst: isFirst,
-                                                          isLast: isLast,
-                                                          isMasterEnabled: settings.masterEnabled,
-                                                          onToggle: () => notifier.toggleStock(stock.symbol),
-                                                        );
-                                                      },
-                                                    );
-                                                  },
-                                                ),
-                                              ),
-                                              const SizedBox(height: 32),
-                                            ],
-                                          )
-                                        : const SizedBox.shrink(),
+                            if (filteredStocks.isEmpty) {
+                              return Padding(
+                                key: const ValueKey('stock_list_empty'),
+                                padding: const EdgeInsets.symmetric(vertical: 40),
+                                child: Center(
+                                  child: Column(
+                                    children: [
+                                      Icon(
+                                        Icons.search_off_rounded,
+                                        size: 40,
+                                        color: AppColors.textSecondary.withValues(alpha: 0.5),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Aradığınız hisse bulunamadı',
+                                        style: GoogleFonts.inter(
+                                          color: AppColors.textSecondary,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ),
-                            ),
-                          ],
-                        )
-                      : const SizedBox.shrink(),
+                              );
+                            }
+
+                            return ListView.builder(
+                              key: const ValueKey('stock_list_loaded'),
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: filteredStocks.length,
+                              itemBuilder: (context, index) {
+                                final stock = filteredStocks[index];
+                                final isFirst = index == 0;
+                                final isLast = index == filteredStocks.length - 1;
+                                final isEnabled = settings.enabledStocks.contains(stock.symbol);
+
+                                return _buildStockItem(
+                                  stock: stock,
+                                  isEnabled: isEnabled,
+                                  isFirst: isFirst,
+                                  isLast: isLast,
+                                  isMasterEnabled: settings.masterEnabled,
+                                  onToggle: () => notifier.toggleStock(stock.symbol),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ],
@@ -663,6 +626,83 @@ class _NotificationSettingsScreenState
             fontSize: size * 0.42,
             fontWeight: FontWeight.w800,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Yukarıdan aşağıya akordiyon tarzında (SizeTransition - axisAlignment: -1.0)
+/// açılıp kapanan pürüzsüz animasyonlu sarmalayıcı bileşen.
+class AccordionSection extends StatefulWidget {
+  final bool isExpanded;
+  final Widget child;
+  final Duration duration;
+  final Curve curve;
+
+  const AccordionSection({
+    super.key,
+    required this.isExpanded,
+    required this.child,
+    this.duration = const Duration(milliseconds: 350),
+    this.curve = Curves.easeInOutCubic,
+  });
+
+  @override
+  State<AccordionSection> createState() => _AccordionSectionState();
+}
+
+class _AccordionSectionState extends State<AccordionSection>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _sizeFactor;
+  late final Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: widget.duration,
+      value: widget.isExpanded ? 1.0 : 0.0,
+    );
+    _sizeFactor = CurvedAnimation(
+      parent: _controller,
+      curve: widget.curve,
+    );
+    _opacity = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant AccordionSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isExpanded != oldWidget.isExpanded) {
+      if (widget.isExpanded) {
+        _controller.forward();
+      } else {
+        _controller.reverse();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: SizeTransition(
+        sizeFactor: _sizeFactor,
+        alignment: Alignment.topCenter, // Üst kısım sabit, alt taraf yukarıdan aşağıya doğru açılır
+        child: FadeTransition(
+          opacity: _opacity,
+          child: widget.child,
         ),
       ),
     );
