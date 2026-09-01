@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/core/providers/watchlist_provider.dart';
 import 'package:halkaarzbilgi/core/theme/app_colors.dart';
-import 'package:halkaarzbilgi/features/home/widgets/watchlist_item.dart';
 import 'package:halkaarzbilgi/features/portfolio/widgets/portfolio_skeleton.dart';
 
 class PortfolioScreen extends ConsumerWidget {
@@ -17,14 +16,15 @@ class PortfolioScreen extends ConsumerWidget {
   });
 
   static const List<Color> _sliceColors = [
-    Color(0xFF00B856), // Green
-    Color(0xFF32ADE6), // Blue
-    Color(0xFFFF9F0A), // Orange
-    Color(0xFFAF52DE), // Purple
-    Color(0xFFFF453A), // Red
-    Color(0xFF5E5CE6), // Indigo
-    Color(0xFFFFD60A), // Yellow
-    Color(0xFF64D2FF), // Cyan
+    Color(0xFF00E676), // Elektrik Zümrüt Yeşil
+    Color(0xFF00B0FF), // Canlı Camgöbeği Mavi
+    Color(0xFFFF3D00), // Canlı Mercan / Neon Kırmızı
+    Color(0xFFFFD600), // Parlak Altın Sarı
+    Color(0xFFA855F7), // Elektrik Menekşe / Mor
+    Color(0xFFFF007F), // Neon Pembe / Magenta
+    Color(0xFF2979FF), // Kraliyet Kobalt Mavisi
+    Color(0xFFFF9100), // Parlak Turuncu
+    Color(0xFF1DE9B6), // Canlı Nane / Turkuaz
   ];
 
   @override
@@ -74,54 +74,22 @@ class PortfolioScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                    // ── 1. Donut Pasta Grafiği Kartı ──────────────────────
-                    _buildDonutChartCard(
-                      entries: entries,
-                      totalValue: totalValue,
-                      totalGainLoss: totalGainLoss,
-                      gainLossPercent: gainLossPercent,
-                      isGain: isGain,
-                    ),
-                    const SizedBox(height: 24),
-
-                    // ── 2. Hisse Listesi Başlığı ─────────────────────────
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Hisselerim',
-                          style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                          // ── 1. Donut Pasta Grafiği Kartı ──────────────────────
+                          _buildDonutChartCard(
+                            entries: entries,
+                            totalValue: totalValue,
+                            totalGainLoss: totalGainLoss,
+                            gainLossPercent: gainLossPercent,
+                            isGain: isGain,
                           ),
-                        ),
-                        Text(
-                          '${entries.length} hisse',
-                          style: GoogleFonts.inter(
-                            color: AppColors.textSecondary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
+                          const SizedBox(height: 16),
 
-                    // ── 3. Hisse Kartları Listesi ────────────────────────
-                    ...List.generate(entries.length, (index) {
-                      final stats = entries[index];
-                      return Padding(
-                        padding: EdgeInsets.only(
-                          bottom: index < entries.length - 1 ? 12.0 : 0.0,
-                        ),
-                        child: WatchlistItem(stats: stats),
-                      );
-                    }),
-                    const SizedBox(height: 24),
-                  ],
-                ),
-              ),
+                          // ── 2. Hisse Tablo Listesi ───────────────────────────
+                          _buildPortfolioTable(entries, totalValue),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
+                    ),
         ),
       ),
     );
@@ -144,128 +112,367 @@ class PortfolioScreen extends ConsumerWidget {
           width: 0.5,
         ),
       ),
-      child: Column(
-        children: [
-          // Donut Chart with Center Text
-          SizedBox(
-            height: 180,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                PieChart(
-                  PieChartData(
-                    sectionsSpace: 3,
-                    centerSpaceRadius: 65,
-                    startDegreeOffset: -90,
-                    sections: entries.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final item = entry.value;
-                      final color = _sliceColors[index % _sliceColors.length];
-                      final value = item.totalValue > 0 ? item.totalValue : 1.0;
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Her ekrana duyarlı (responsive) dinamik ölçülendirme
+          final isSmallScreen = constraints.maxWidth < 320;
+          final chartHeight = isSmallScreen ? 210.0 : 240.0;
+          final centerSpaceRadius = isSmallScreen ? 68.0 : 78.0;
+          final mainRingRadius = isSmallScreen ? 20.0 : 24.0;
+          final innerGlowRadius = isSmallScreen ? 6.0 : 8.0;
+          final innerCenterSpaceRadius = centerSpaceRadius - innerGlowRadius;
+          final centerContentWidth = (centerSpaceRadius * 2) - 16;
 
-                      return PieChartSectionData(
-                        color: color,
-                        value: value,
-                        title: '',
-                        radius: 20,
-                      );
-                    }).toList(),
-                  ),
-                ),
-                // Center text
-                Column(
-                  mainAxisSize: MainAxisSize.min,
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                height: chartHeight,
+                child: Stack(
+                  alignment: Alignment.center,
                   children: [
-                    Text(
-                      'Toplam Değer',
-                      style: GoogleFonts.inter(
-                        color: AppColors.textSecondary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                    // 1. Katman: İçteki açık/saydam derinlik halkası
+                    PieChart(
+                      PieChartData(
+                        sectionsSpace: entries.length > 1 ? 3.5 : 0,
+                        centerSpaceRadius: innerCenterSpaceRadius,
+                        startDegreeOffset: -90,
+                        sections: entries.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final item = entry.value;
+                          final color = _sliceColors[index % _sliceColors.length];
+                          final value = item.totalValue > 0 ? item.totalValue : 1.0;
+
+                          return PieChartSectionData(
+                            color: color.withValues(alpha: 0.25),
+                            value: value,
+                            title: '',
+                            radius: innerGlowRadius,
+                          );
+                        }).toList(),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${totalValue.toStringAsFixed(2).replaceAll('.', ',')} TL',
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                    // 2. Katman: Dıştaki ana canlı renkli halka
+                    PieChart(
+                      PieChartData(
+                        sectionsSpace: entries.length > 1 ? 3.5 : 0,
+                        centerSpaceRadius: centerSpaceRadius,
+                        startDegreeOffset: -90,
+                        sections: entries.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final item = entry.value;
+                          final color = _sliceColors[index % _sliceColors.length];
+                          final value = item.totalValue > 0 ? item.totalValue : 1.0;
+
+                          return PieChartSectionData(
+                            color: color,
+                            value: value,
+                            title: '',
+                            radius: mainRingRadius,
+                          );
+                        }).toList(),
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          isGain ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                          color: isGain ? AppColors.primaryGreen : AppColors.lossRed,
-                          size: 16,
-                        ),
-                        Text(
-                          '${isGain ? '%' : '-%'}${gainLossPercent.abs().toStringAsFixed(2).replaceAll('.', ',')}',
-                          style: GoogleFonts.inter(
-                            color: isGain ? AppColors.primaryGreen : AppColors.lossRed,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                    // Ferah ve Taşma Korumalı Merkez Alanı
+                    SizedBox(
+                      width: centerContentWidth,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Toplam Değer',
+                            style: GoogleFonts.inter(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.3,
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 4),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              '${totalValue.toStringAsFixed(2).replaceAll('.', ',')} TL',
+                              style: GoogleFonts.inter(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isGain ? Icons.arrow_drop_up_rounded : Icons.arrow_drop_down_rounded,
+                                color: isGain ? AppColors.primaryGreen : AppColors.lossRed,
+                                size: 18,
+                              ),
+                              Text(
+                                '${isGain ? '%' : '-%'}${gainLossPercent.abs().toStringAsFixed(2).replaceAll('.', ',')}',
+                                style: GoogleFonts.inter(
+                                  color: isGain ? AppColors.primaryGreen : AppColors.lossRed,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Divider(color: AppColors.border, height: 1),
-          const SizedBox(height: 16),
+              ),
+              const SizedBox(height: 20),
+              const Divider(color: AppColors.border, height: 1),
+              const SizedBox(height: 16),
 
-          // Legend / Distribution Breakdown
-          Wrap(
-            spacing: 16,
-            runSpacing: 10,
-            alignment: WrapAlignment.center,
-            children: entries.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-              final color = _sliceColors[index % _sliceColors.length];
-              final percent = totalValue > 0 ? (item.totalValue / totalValue) * 100 : 0.0;
+              // Legend: Her hissenin kare rengi, adı ve portföy yüzdesi (parantez içinde)
+              Wrap(
+                spacing: 16,
+                runSpacing: 10,
+                alignment: WrapAlignment.center,
+                children: entries.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final item = entry.value;
+                  final color = _sliceColors[index % _sliceColors.length];
+                  final percent = totalValue > 0 ? (item.totalValue / totalValue) * 100 : 0.0;
 
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    item.entry.symbol,
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 11,
+                        height: 11,
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(2.5),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        item.entry.symbol,
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '(%${percent.toStringAsFixed(1).replaceAll('.', ',')})',
+                        style: GoogleFonts.inter(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  /// Düz (flat) tablo tasarımı: Arka plan renklendirmesi yok, 14px zarif ince sayılar
+  Widget _buildPortfolioTable(List<UserPortfolioStats> entries, double totalValue) {
+    return Column(
+      children: [
+        // Tablo Başlık Satırı
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6.0),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Hisse',
                     style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                      fontSize: 14.5,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '%${percent.toStringAsFixed(1).replaceAll('.', ',')}',
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'Maliyet',
+                    textAlign: TextAlign.right,
                     style: GoogleFonts.inter(
                       color: AppColors.textSecondary,
-                      fontSize: 12,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ],
-              );
-            }).toList(),
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'Kazanç',
+                    textAlign: TextAlign.right,
+                    style: GoogleFonts.inter(
+                      color: AppColors.textSecondary,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    '% Kazanç',
+                    textAlign: TextAlign.right,
+                    style: GoogleFonts.inter(
+                      color: AppColors.textSecondary,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        Divider(color: const Color(0xFF3F3F46), height: 1),
+
+        // Tablo Satırları
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: entries.length,
+          separatorBuilder: (_, _) => const _DashedDivider(),
+          itemBuilder: (context, index) {
+            final item = entries[index];
+            final color = _sliceColors[index % _sliceColors.length];
+            final isGain = item.isGain;
+            final gainColor = isGain ? AppColors.primaryGreen : AppColors.lossRed;
+
+            return InkWell(
+              borderRadius: BorderRadius.circular(6),
+              onTap: () {
+                context.push('/ipo/${item.entry.symbol}');
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 13.0),
+                child: Row(
+                  children: [
+                    // 1. Sütun: Kare Renk Kutusu + Hisse Kodu (15.5px w500)
+                    Expanded(
+                      flex: 3,
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: color,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                item.entry.symbol,
+                                style: GoogleFonts.inter(
+                                  color: Colors.white,
+                                  fontSize: 15.5,
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: -0.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // 2. Sütun: Toplam Maliyet (TL) - 14px w400
+                    Expanded(
+                      flex: 3,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          '${item.totalCost.toStringAsFixed(2).replaceAll('.', ',')} TL',
+                          textAlign: TextAlign.right,
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                    ),
+                    // 3. Sütun: Toplam Kazanç (TL) - 14px w500 Renkli
+                    Expanded(
+                      flex: 3,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          '${item.totalGainLoss >= 0 ? '+' : ''}${item.totalGainLoss.toStringAsFixed(2).replaceAll('.', ',')} TL',
+                          textAlign: TextAlign.right,
+                          style: GoogleFonts.inter(
+                            color: gainColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                    // 4. Sütun: Yüzde Kazanç (%) - 14px w500 Renkli
+                    Expanded(
+                      flex: 3,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          '${item.personalChangePercent >= 0 ? '%' : '-%'}${item.personalChangePercent.abs().toStringAsFixed(2).replaceAll('.', ',')}',
+                          textAlign: TextAlign.right,
+                          style: GoogleFonts.inter(
+                            color: gainColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+        // En alttaki hissenin altındaki kesikli çizgi
+        if (entries.isNotEmpty) const _DashedDivider(),
+      ],
     );
   }
 
@@ -313,4 +520,43 @@ class PortfolioScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Görseldeki gibi zarif ve belirgin kesikli (dashed) ayraç çizgisi
+class _DashedDivider extends StatelessWidget {
+  const _DashedDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      height: 1,
+      child: CustomPaint(
+        painter: _DashedLinePainter(),
+        size: Size(double.infinity, 1),
+      ),
+    );
+  }
+}
+
+class _DashedLinePainter extends CustomPainter {
+  const _DashedLinePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF3F3F46)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    double startX = 0;
+    final y = size.height / 2;
+    while (startX < size.width) {
+      final endX = (startX + 4.0).clamp(0.0, size.width);
+      canvas.drawLine(Offset(startX, y), Offset(endX, y), paint);
+      startX += 4.0 + 3.0;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
