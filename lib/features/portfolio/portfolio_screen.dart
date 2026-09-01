@@ -1,19 +1,29 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/core/providers/watchlist_provider.dart';
 import 'package:halkaarzbilgi/core/theme/app_colors.dart';
 import 'package:halkaarzbilgi/features/portfolio/widgets/portfolio_skeleton.dart';
 
-class PortfolioScreen extends ConsumerWidget {
+class PortfolioScreen extends ConsumerStatefulWidget {
   final bool isLoading;
 
   const PortfolioScreen({
     super.key,
     this.isLoading = false,
   });
+
+  @override
+  ConsumerState<PortfolioScreen> createState() => _PortfolioScreenState();
+}
+
+class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
+  bool _isSelectionMode = false;
+  final Set<String> _selectedSymbols = {};
 
   static const List<Color> _sliceColors = [
     Color(0xFF00E676), // Elektrik Zümrüt Yeşil
@@ -28,7 +38,7 @@ class PortfolioScreen extends ConsumerWidget {
   ];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final entries = ref.watch(portfolioStatsProvider);
 
     final totalValue = entries.fold<double>(0.0, (sum, e) => sum + e.totalValue);
@@ -39,29 +49,103 @@ class PortfolioScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          'Portföyüm',
-          style: GoogleFonts.inter(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
-        centerTitle: true,
-      ),
+      appBar: _isSelectionMode
+          ? AppBar(
+              backgroundColor: AppColors.background,
+              elevation: 0,
+              leadingWidth: 84,
+              leading: TextButton(
+                onPressed: () {
+                  setState(() {
+                    _isSelectionMode = false;
+                    _selectedSymbols.clear();
+                  });
+                },
+                child: Text(
+                  'Vazgeç',
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFF8E8E93),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              title: Text(
+                _selectedSymbols.isEmpty
+                    ? 'Hisseleri Seçin'
+                    : '${_selectedSymbols.length} Seçildi',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 17,
+                ),
+              ),
+              centerTitle: true,
+              actions: [
+                // Tümünü Seç / Temizle butonu
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      if (_selectedSymbols.length == entries.length) {
+                        _selectedSymbols.clear();
+                      } else {
+                        _selectedSymbols.addAll(entries.map((e) => e.entry.symbol));
+                      }
+                    });
+                  },
+                  child: Text(
+                    _selectedSymbols.length == entries.length ? 'Temizle' : 'Tümü',
+                    style: GoogleFonts.inter(
+                      color: AppColors.primaryGreen,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                // Kırmızı Sil Butonu
+                Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: TextButton(
+                    onPressed: _selectedSymbols.isEmpty
+                        ? null
+                        : () => _deleteSelectedStocks(entries),
+                    child: Text(
+                      'Sil',
+                      style: GoogleFonts.inter(
+                        color: _selectedSymbols.isEmpty
+                            ? const Color(0xFF555555)
+                            : const Color(0xFFFF3B30),
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : AppBar(
+              backgroundColor: AppColors.background,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                onPressed: () => context.pop(),
+              ),
+              title: Text(
+                'Portföyüm',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+              centerTitle: true,
+            ),
       body: SafeArea(
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           switchInCurve: Curves.easeIn,
           switchOutCurve: Curves.easeOut,
-          child: isLoading
+          child: widget.isLoading
               ? const PortfolioSkeleton(key: ValueKey('portfolio_skeleton'))
               : entries.isEmpty
                   ? KeyedSubtree(
@@ -70,17 +154,19 @@ class PortfolioScreen extends ConsumerWidget {
                     )
                   : SingleChildScrollView(
                       key: const ValueKey('portfolio_content'),
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+                      padding: const EdgeInsets.symmetric(vertical: 12.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // ── 1. Donut Pasta Grafiği Kartı ──────────────────────
-                          _buildDonutChartCard(
-                            entries: entries,
-                            totalValue: totalValue,
-                            totalGainLoss: totalGainLoss,
-                            gainLossPercent: gainLossPercent,
-                            isGain: isGain,
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                            child: _buildDonutChartCard(
+                              entries: entries,
+                              totalValue: totalValue,
+                              totalGainLoss: totalGainLoss,
+                              gainLossPercent: gainLossPercent,
+                              isGain: isGain,
+                            ),
                           ),
                           const SizedBox(height: 16),
 
@@ -282,14 +368,23 @@ class PortfolioScreen extends ConsumerWidget {
   }
 
   /// Düz (flat) tablo tasarımı: Arka plan renklendirmesi yok, 14px zarif ince sayılar
-  Widget _buildPortfolioTable(List<UserPortfolioStats> entries, double totalValue) {
+  Widget _buildPortfolioTable(
+    List<UserPortfolioStats> entries,
+    double totalValue,
+  ) {
     return Column(
       children: [
         // Tablo Başlık Satırı
         Padding(
-          padding: const EdgeInsets.only(bottom: 6.0),
+          padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 6.0),
           child: Row(
             children: [
+              // Çoklu seçim modunda başlıkları sütunlarla hizalamak için dinamik boşluk
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                width: _isSelectionMode ? 34.0 : 0.0,
+              ),
               Expanded(
                 flex: 3,
                 child: FittedBox(
@@ -356,123 +451,308 @@ class PortfolioScreen extends ConsumerWidget {
             ],
           ),
         ),
-        Divider(color: const Color(0xFF3F3F46), height: 1),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20.0),
+          child: Divider(color: Color(0xFF3F3F46), height: 1),
+        ),
 
-        // Tablo Satırları
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: entries.length,
-          separatorBuilder: (_, _) => const _DashedDivider(),
-          itemBuilder: (context, index) {
-            final item = entries[index];
-            final color = _sliceColors[index % _sliceColors.length];
-            final isGain = item.isGain;
-            final gainColor = isGain ? AppColors.primaryGreen : AppColors.lossRed;
+        // Tablo Satırları (Sola kaydırarak silme & basılı tutarak çoklu seçim özellikli)
+        SlidableAutoCloseBehavior(
+          closeWhenOpened: true,
+          closeWhenTapped: true,
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: entries.length,
+            separatorBuilder: (_, _) => const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.0),
+              child: _DashedDivider(),
+            ),
+            itemBuilder: (context, index) {
+              final item = entries[index];
+              final color = _sliceColors[index % _sliceColors.length];
+              final isGain = item.isGain;
+              final gainColor = isGain ? AppColors.primaryGreen : AppColors.lossRed;
+              final isSelected = _selectedSymbols.contains(item.entry.symbol);
 
-            return InkWell(
-              borderRadius: BorderRadius.circular(6),
-              onTap: () {
-                context.push('/ipo/${item.entry.symbol}');
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 13.0),
-                child: Row(
+              return Slidable(
+                key: ValueKey(item.entry.symbol),
+                enabled: !_isSelectionMode, // Çoklu seçim modundayken sola kaydırmayı kapat
+                endActionPane: ActionPane(
+                  motion: const DrawerMotion(),
+                  extentRatio: 0.22,
+                  dismissible: DismissiblePane(
+                    onDismissed: () => _deleteStock(item),
+                  ),
                   children: [
-                    // 1. Sütun: Kare Renk Kutusu + Hisse Kodu (15.5px w500)
-                    Expanded(
-                      flex: 3,
-                      child: Row(
+                    CustomSlidableAction(
+                      onPressed: (_) => _deleteStock(item),
+                      backgroundColor: const Color(0xFFFF3B30),
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: color,
-                              borderRadius: BorderRadius.circular(3),
-                            ),
+                          const Icon(
+                            Icons.delete_outline_rounded,
+                            color: Colors.white,
+                            size: 24,
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                item.entry.symbol,
-                                style: GoogleFonts.inter(
-                                  color: Colors.white,
-                                  fontSize: 15.5,
-                                  fontWeight: FontWeight.w500,
-                                  letterSpacing: -0.2,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Sil',
+                            style: GoogleFonts.inter(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    // 2. Sütun: Toplam Maliyet (TL) - 14px w400
-                    Expanded(
-                      flex: 3,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerRight,
-                        child: Text(
-                          '${item.totalCost.toStringAsFixed(2).replaceAll('.', ',')} TL',
-                          textAlign: TextAlign.right,
-                          style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // 3. Sütun: Toplam Kazanç (TL) - 14px w500 Renkli
-                    Expanded(
-                      flex: 3,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerRight,
-                        child: Text(
-                          '${item.totalGainLoss >= 0 ? '+' : ''}${item.totalGainLoss.toStringAsFixed(2).replaceAll('.', ',')} TL',
-                          textAlign: TextAlign.right,
-                          style: GoogleFonts.inter(
-                            color: gainColor,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // 4. Sütun: Yüzde Kazanç (%) - 14px w500 Renkli
-                    Expanded(
-                      flex: 3,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerRight,
-                        child: Text(
-                          '${item.personalChangePercent >= 0 ? '%' : '-%'}${item.personalChangePercent.abs().toStringAsFixed(2).replaceAll('.', ',')}',
-                          textAlign: TextAlign.right,
-                          style: GoogleFonts.inter(
-                            color: gainColor,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
-              ),
-            );
-          },
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(6),
+                  onTap: () {
+                    if (_isSelectionMode) {
+                      setState(() {
+                        if (isSelected) {
+                          _selectedSymbols.remove(item.entry.symbol);
+                        } else {
+                          _selectedSymbols.add(item.entry.symbol);
+                        }
+                      });
+                    } else {
+                      context.push('/ipo/${item.entry.symbol}');
+                    }
+                  },
+                  onLongPress: () {
+                    if (!_isSelectionMode) {
+                      HapticFeedback.mediumImpact();
+                      setState(() {
+                        _isSelectionMode = true;
+                        _selectedSymbols.clear();
+                        _selectedSymbols.add(item.entry.symbol);
+                      });
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 13.0),
+                    child: Row(
+                      children: [
+                        // Çoklu Seçim Modunda Sol Tik Kutucuğu (Checklist)
+                        if (_isSelectionMode) ...[
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeOut,
+                            width: 22,
+                            height: 22,
+                            margin: const EdgeInsets.only(right: 12),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isSelected ? AppColors.primaryGreen : Colors.transparent,
+                              border: Border.all(
+                                color: isSelected ? AppColors.primaryGreen : const Color(0xFF555555),
+                                width: 1.8,
+                              ),
+                            ),
+                            child: isSelected
+                                ? const Icon(
+                                    Icons.check,
+                                    size: 14,
+                                    color: Colors.black,
+                                  )
+                                : null,
+                          ),
+                        ],
+                        // 1. Sütun: Kare Renk Kutusu + Hisse Kodu (15.5px w500)
+                        Expanded(
+                          flex: 3,
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    item.entry.symbol,
+                                    style: GoogleFonts.inter(
+                                      color: Colors.white,
+                                      fontSize: 15.5,
+                                      fontWeight: FontWeight.w500,
+                                      letterSpacing: -0.2,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // 2. Sütun: Toplam Maliyet (TL) - 14px w400
+                        Expanded(
+                          flex: 3,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              '${item.totalCost.toStringAsFixed(2).replaceAll('.', ',')} TL',
+                              textAlign: TextAlign.right,
+                              style: GoogleFonts.inter(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ),
+                        ),
+                        // 3. Sütun: Toplam Kazanç (TL) - 14px w500 Renkli
+                        Expanded(
+                          flex: 3,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              '${item.totalGainLoss >= 0 ? '+' : ''}${item.totalGainLoss.toStringAsFixed(2).replaceAll('.', ',')} TL',
+                              textAlign: TextAlign.right,
+                              style: GoogleFonts.inter(
+                                color: gainColor,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                        // 4. Sütun: Yüzde Kazanç (%) - 14px w500 Renkli
+                        Expanded(
+                          flex: 3,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              '${item.personalChangePercent >= 0 ? '%' : '-%'}${item.personalChangePercent.abs().toStringAsFixed(2).replaceAll('.', ',')}',
+                              textAlign: TextAlign.right,
+                              style: GoogleFonts.inter(
+                                color: gainColor,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
         // En alttaki hissenin altındaki kesikli çizgi
-        if (entries.isNotEmpty) const _DashedDivider(),
+        if (entries.isNotEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.0),
+            child: _DashedDivider(),
+          ),
       ],
+    );
+  }
+
+  /// Portföyden tekil hisse silme ve geri alma (Undo) bildirimi
+  void _deleteStock(UserPortfolioStats item) {
+    final entry = item.entry;
+    ref.read(watchlistMarkProvider.notifier).removeStock(entry.symbol);
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '${entry.symbol} portföyden silindi',
+          style: GoogleFonts.inter(color: Colors.white),
+        ),
+        backgroundColor: const Color(0xFF1A1A1C),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: const BorderSide(color: Color(0xFF2C2C2E), width: 0.5),
+        ),
+        action: SnackBarAction(
+          label: 'Geri Al',
+          textColor: AppColors.primaryGreen,
+          onPressed: () {
+            ref.read(watchlistMarkProvider.notifier).addStock(
+                  symbol: entry.symbol,
+                  companyName: entry.companyName,
+                  lots: entry.lots,
+                  ipoPrice: entry.costPrice,
+                );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Seçilen tüm hisseleri portföyden silme ve toplu geri alma (Undo) bildirimi
+  void _deleteSelectedStocks(List<UserPortfolioStats> entries) {
+    if (_selectedSymbols.isEmpty) return;
+
+    final selectedList = entries
+        .where((e) => _selectedSymbols.contains(e.entry.symbol))
+        .map((e) => e.entry)
+        .toList();
+
+    final count = selectedList.length;
+
+    for (final entry in selectedList) {
+      ref.read(watchlistMarkProvider.notifier).removeStock(entry.symbol);
+    }
+
+    setState(() {
+      _isSelectionMode = false;
+      _selectedSymbols.clear();
+    });
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '$count hisse portföyden silindi',
+          style: GoogleFonts.inter(color: Colors.white),
+        ),
+        backgroundColor: const Color(0xFF1A1A1C),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: const BorderSide(color: Color(0xFF2C2C2E), width: 0.5),
+        ),
+        action: SnackBarAction(
+          label: 'Geri Al',
+          textColor: AppColors.primaryGreen,
+          onPressed: () {
+            for (final entry in selectedList) {
+              ref.read(watchlistMarkProvider.notifier).addStock(
+                    symbol: entry.symbol,
+                    companyName: entry.companyName,
+                    lots: entry.lots,
+                    ipoPrice: entry.costPrice,
+                  );
+            }
+          },
+        ),
+      ),
     );
   }
 

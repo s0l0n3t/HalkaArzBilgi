@@ -146,6 +146,12 @@
       "languageVersion": "2.17"
     },
     {
+      "name": "flutter_slidable",
+      "rootUri": "file:///C:/Users/Administrator/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_slidable-4.0.3",
+      "packageUri": "lib/",
+      "languageVersion": "3.6"
+    },
+    {
       "name": "flutter_svg",
       "rootUri": "file:///C:/Users/Administrator/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_svg-2.3.0",
       "packageUri": "lib/",
