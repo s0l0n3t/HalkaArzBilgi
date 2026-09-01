@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:halkaarzbilgi/core/theme/app_colors.dart';
 import 'package:halkaarzbilgi/core/widgets/percentage_badge.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:halkaarzbilgi/core/providers/market_provider.dart';
@@ -57,14 +59,44 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   String _searchQuery = '';
   StockFilter _selectedFilter = StockFilter.all;
 
+  /// Kullanıcının kutucuklar için özelleştirdiği hisse eşleşmeleri: { slotIndex: symbol }
+  Map<int, String> _slotOverrides = {};
+
   @override
   void initState() {
     super.initState();
+    _loadSlotOverrides();
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.trim();
       });
     });
+  }
+
+  Future<void> _loadSlotOverrides() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedJson = prefs.getString('heatmap_custom_slot_overrides');
+      if (savedJson != null && savedJson.isNotEmpty) {
+        final decoded = jsonDecode(savedJson) as Map<String, dynamic>;
+        if (mounted) {
+          setState(() {
+            _slotOverrides = decoded.map((key, value) => MapEntry(int.parse(key), value as String));
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveSlotOverride(int slotIndex, String symbol) async {
+    setState(() {
+      _slotOverrides[slotIndex] = symbol;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final mapToSave = _slotOverrides.map((key, value) => MapEntry(key.toString(), value));
+      await prefs.setString('heatmap_custom_slot_overrides', jsonEncode(mapToSave));
+    } catch (_) {}
   }
 
   @override
@@ -105,12 +137,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
 
     // 4. Mozaik katmanlarına (Dev, Orta, Küçük, Mini, Mikro) dengeli ve karışık olarak dağıt
-    return _distributeStocksAcrossGrid(list, 45);
+    return _distributeStocksAcrossGrid(list, 45, rawStocks);
   }
 
   /// Aktif hisseleri ve %0 boş blokları mozaikteki tüm katmanlara (Dev, Orta, Küçük, Mini, Mikro)
   /// dengeli ve karışık biçimde yerleştirir.
-  List<HeatmapTileItem> _distributeStocksAcrossGrid(List<HeatmapTileItem> activeStocks, int totalSlots) {
+  List<HeatmapTileItem> _distributeStocksAcrossGrid(
+    List<HeatmapTileItem> activeStocks,
+    int totalSlots,
+    List<StockModel> rawStocks,
+  ) {
     if (activeStocks.isEmpty) {
       return List.generate(totalSlots, (_) => HeatmapTileItem.empty());
     }
@@ -149,6 +185,25 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       final targetSlot = slotPriorityOrder[i];
       if (targetSlot < totalSlots) {
         result[targetSlot] = activeStocks[i];
+      }
+    }
+
+    // Kullanıcının elle değiştirdiği slotları (overrides) uygula
+    for (final entry in _slotOverrides.entries) {
+      final slot = entry.key;
+      final symbol = entry.value;
+      if (slot >= 0 && slot < totalSlots) {
+        final match = rawStocks.where((s) => s.symbol == symbol).firstOrNull;
+        if (match != null) {
+          result[slot] = HeatmapTileItem(
+            symbol: match.symbol,
+            companyName: match.companyName,
+            changePercent: match.changePercent,
+            size: HeatmapTileSize.medium,
+            isGain: match.isGain,
+            price: match.currentPrice,
+          );
+        }
       }
     }
 
@@ -456,7 +511,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     }
                     return KeyedSubtree(
                       key: const ValueKey('search_heatmap_data'),
-                      child: _buildAdvancedHeatmap(mappedStocks),
+                      child: _buildAdvancedHeatmap(mappedStocks, rawStocks),
                     );
                   },
                 ),
@@ -626,12 +681,23 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   // ── Gelişmiş İki Katmanlı Zengin Mozaik Isı Haritası (45 Hisse Treemap) ──
-  Widget _buildAdvancedHeatmap(List<HeatmapTileItem> items) {
+  Widget _buildAdvancedHeatmap(List<HeatmapTileItem> items, List<StockModel> rawStocks) {
     // Dinamik max artış/düşüş hesapla (mutlak değerler)
     final gains = items.where((i) => i.isGain && !i.isEmpty).map((i) => i.changePercent.abs());
     final losses = items.where((i) => !i.isGain && !i.isEmpty).map((i) => i.changePercent.abs());
     final maxGain = gains.isNotEmpty ? gains.reduce((a, b) => a > b ? a : b) : 1.0;
     final maxLoss = losses.isNotEmpty ? losses.reduce((a, b) => a > b ? a : b) : 1.0;
+
+    Widget tile(int index, HeatmapTileSize size) {
+      return _buildHeatmapTile(
+        stock: items[index],
+        slotIndex: index,
+        allStocks: rawStocks,
+        size: size,
+        maxGain: maxGain,
+        maxLoss: maxLoss,
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
@@ -647,23 +713,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   flex: 10,
                   child: Column(
                     children: [
-                      Expanded(
-                        child: _buildHeatmapTile(
-                          stock: items[0],
-                          size: HeatmapTileSize.large,
-                          maxGain: maxGain,
-                          maxLoss: maxLoss,
-                        ),
-                      ),
+                      Expanded(child: tile(0, HeatmapTileSize.large)),
                       const SizedBox(height: 2),
-                      Expanded(
-                        child: _buildHeatmapTile(
-                          stock: items[1],
-                          size: HeatmapTileSize.large,
-                          maxGain: maxGain,
-                          maxLoss: maxLoss,
-                        ),
-                      ),
+                      Expanded(child: tile(1, HeatmapTileSize.large)),
                     ],
                   ),
                 ),
@@ -679,25 +731,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         flex: 13,
                         child: Row(
                           children: [
-                            Expanded(
-                              flex: 6,
-                              child: _buildHeatmapTile(
-                                stock: items[2],
-                                size: HeatmapTileSize.medium,
-                                maxGain: maxGain,
-                                maxLoss: maxLoss,
-                              ),
-                            ),
+                            Expanded(flex: 6, child: tile(2, HeatmapTileSize.medium)),
                             const SizedBox(width: 2),
-                            Expanded(
-                              flex: 5,
-                              child: _buildHeatmapTile(
-                                stock: items[3],
-                                size: HeatmapTileSize.medium,
-                                maxGain: maxGain,
-                                maxLoss: maxLoss,
-                              ),
-                            ),
+                            Expanded(flex: 5, child: tile(3, HeatmapTileSize.medium)),
                           ],
                         ),
                       ),
@@ -708,11 +744,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         flex: 11,
                         child: Row(
                           children: [
-                            Expanded(child: _buildHeatmapTile(stock: items[4], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
+                            Expanded(child: tile(4, HeatmapTileSize.medium)),
                             const SizedBox(width: 2),
-                            Expanded(child: _buildHeatmapTile(stock: items[5], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
+                            Expanded(child: tile(5, HeatmapTileSize.medium)),
                             const SizedBox(width: 2),
-                            Expanded(child: _buildHeatmapTile(stock: items[6], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
+                            Expanded(child: tile(6, HeatmapTileSize.medium)),
                           ],
                         ),
                       ),
@@ -723,11 +759,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         flex: 11,
                         child: Row(
                           children: [
-                            Expanded(child: _buildHeatmapTile(stock: items[7], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
+                            Expanded(child: tile(7, HeatmapTileSize.medium)),
                             const SizedBox(width: 2),
-                            Expanded(child: _buildHeatmapTile(stock: items[8], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
+                            Expanded(child: tile(8, HeatmapTileSize.medium)),
                             const SizedBox(width: 2),
-                            Expanded(child: _buildHeatmapTile(stock: items[9], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
+                            Expanded(child: tile(9, HeatmapTileSize.medium)),
                           ],
                         ),
                       ),
@@ -743,11 +779,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               flex: 4,
                               child: Column(
                                 children: [
-                                  Expanded(child: _buildHeatmapTile(stock: items[10], size: HeatmapTileSize.small, maxGain: maxGain, maxLoss: maxLoss)),
+                                  Expanded(child: tile(10, HeatmapTileSize.small)),
                                   const SizedBox(height: 2),
-                                  Expanded(child: _buildHeatmapTile(stock: items[11], size: HeatmapTileSize.small, maxGain: maxGain, maxLoss: maxLoss)),
+                                  Expanded(child: tile(11, HeatmapTileSize.small)),
                                   const SizedBox(height: 2),
-                                  Expanded(child: _buildHeatmapTile(stock: items[12], size: HeatmapTileSize.small, maxGain: maxGain, maxLoss: maxLoss)),
+                                  Expanded(child: tile(12, HeatmapTileSize.small)),
                                 ],
                               ),
                             ),
@@ -763,9 +799,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     flex: 3,
                                     child: Row(
                                       children: [
-                                        Expanded(child: _buildHeatmapTile(stock: items[13], size: HeatmapTileSize.small, maxGain: maxGain, maxLoss: maxLoss)),
+                                        Expanded(child: tile(13, HeatmapTileSize.small)),
                                         const SizedBox(width: 2),
-                                        Expanded(child: _buildHeatmapTile(stock: items[14], size: HeatmapTileSize.small, maxGain: maxGain, maxLoss: maxLoss)),
+                                        Expanded(child: tile(14, HeatmapTileSize.small)),
                                       ],
                                     ),
                                   ),
@@ -776,11 +812,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     flex: 2,
                                     child: Row(
                                       children: [
-                                        Expanded(child: _buildHeatmapTile(stock: items[15], size: HeatmapTileSize.mini, maxGain: maxGain, maxLoss: maxLoss)),
+                                        Expanded(child: tile(15, HeatmapTileSize.mini)),
                                         const SizedBox(width: 2),
-                                        Expanded(child: _buildHeatmapTile(stock: items[16], size: HeatmapTileSize.mini, maxGain: maxGain, maxLoss: maxLoss)),
+                                        Expanded(child: tile(16, HeatmapTileSize.mini)),
                                         const SizedBox(width: 2),
-                                        Expanded(child: _buildHeatmapTile(stock: items[17], size: HeatmapTileSize.mini, maxGain: maxGain, maxLoss: maxLoss)),
+                                        Expanded(child: tile(17, HeatmapTileSize.mini)),
                                       ],
                                     ),
                                   ),
@@ -791,13 +827,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     flex: 2,
                                     child: Row(
                                       children: [
-                                        Expanded(child: _buildHeatmapTile(stock: items[18], size: HeatmapTileSize.micro, maxGain: maxGain, maxLoss: maxLoss)),
+                                        Expanded(child: tile(18, HeatmapTileSize.micro)),
                                         const SizedBox(width: 2),
-                                        Expanded(child: _buildHeatmapTile(stock: items[19], size: HeatmapTileSize.micro, maxGain: maxGain, maxLoss: maxLoss)),
+                                        Expanded(child: tile(19, HeatmapTileSize.micro)),
                                         const SizedBox(width: 2),
-                                        Expanded(child: _buildHeatmapTile(stock: items[20], size: HeatmapTileSize.micro, maxGain: maxGain, maxLoss: maxLoss)),
+                                        Expanded(child: tile(20, HeatmapTileSize.micro)),
                                         const SizedBox(width: 2),
-                                        Expanded(child: _buildHeatmapTile(stock: items[21], size: HeatmapTileSize.micro, maxGain: maxGain, maxLoss: maxLoss)),
+                                        Expanded(child: tile(21, HeatmapTileSize.micro)),
                                       ],
                                     ),
                                   ),
@@ -825,23 +861,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   flex: 10,
                   child: Column(
                     children: [
-                      Expanded(
-                        child: _buildHeatmapTile(
-                          stock: items[22],
-                          size: HeatmapTileSize.large,
-                          maxGain: maxGain,
-                          maxLoss: maxLoss,
-                        ),
-                      ),
+                      Expanded(child: tile(22, HeatmapTileSize.large)),
                       const SizedBox(height: 2),
-                      Expanded(
-                        child: _buildHeatmapTile(
-                          stock: items[23],
-                          size: HeatmapTileSize.large,
-                          maxGain: maxGain,
-                          maxLoss: maxLoss,
-                        ),
-                      ),
+                      Expanded(child: tile(23, HeatmapTileSize.large)),
                     ],
                   ),
                 ),
@@ -857,25 +879,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         flex: 13,
                         child: Row(
                           children: [
-                            Expanded(
-                              flex: 6,
-                              child: _buildHeatmapTile(
-                                stock: items[24],
-                                size: HeatmapTileSize.medium,
-                                maxGain: maxGain,
-                                maxLoss: maxLoss,
-                              ),
-                            ),
+                            Expanded(flex: 6, child: tile(24, HeatmapTileSize.medium)),
                             const SizedBox(width: 2),
-                            Expanded(
-                              flex: 5,
-                              child: _buildHeatmapTile(
-                                stock: items[25],
-                                size: HeatmapTileSize.medium,
-                                maxGain: maxGain,
-                                maxLoss: maxLoss,
-                              ),
-                            ),
+                            Expanded(flex: 5, child: tile(25, HeatmapTileSize.medium)),
                           ],
                         ),
                       ),
@@ -886,11 +892,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         flex: 11,
                         child: Row(
                           children: [
-                            Expanded(child: _buildHeatmapTile(stock: items[26], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
+                            Expanded(child: tile(26, HeatmapTileSize.medium)),
                             const SizedBox(width: 2),
-                            Expanded(child: _buildHeatmapTile(stock: items[27], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
+                            Expanded(child: tile(27, HeatmapTileSize.medium)),
                             const SizedBox(width: 2),
-                            Expanded(child: _buildHeatmapTile(stock: items[28], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
+                            Expanded(child: tile(28, HeatmapTileSize.medium)),
                           ],
                         ),
                       ),
@@ -901,11 +907,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         flex: 11,
                         child: Row(
                           children: [
-                            Expanded(child: _buildHeatmapTile(stock: items[29], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
+                            Expanded(child: tile(29, HeatmapTileSize.medium)),
                             const SizedBox(width: 2),
-                            Expanded(child: _buildHeatmapTile(stock: items[30], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
+                            Expanded(child: tile(30, HeatmapTileSize.medium)),
                             const SizedBox(width: 2),
-                            Expanded(child: _buildHeatmapTile(stock: items[31], size: HeatmapTileSize.medium, maxGain: maxGain, maxLoss: maxLoss)),
+                            Expanded(child: tile(31, HeatmapTileSize.medium)),
                           ],
                         ),
                       ),
@@ -921,11 +927,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               flex: 4,
                               child: Column(
                                 children: [
-                                  Expanded(child: _buildHeatmapTile(stock: items[32], size: HeatmapTileSize.small, maxGain: maxGain, maxLoss: maxLoss)),
+                                  Expanded(child: tile(32, HeatmapTileSize.small)),
                                   const SizedBox(height: 2),
-                                  Expanded(child: _buildHeatmapTile(stock: items[33], size: HeatmapTileSize.small, maxGain: maxGain, maxLoss: maxLoss)),
+                                  Expanded(child: tile(33, HeatmapTileSize.small)),
                                   const SizedBox(height: 2),
-                                  Expanded(child: _buildHeatmapTile(stock: items[34], size: HeatmapTileSize.small, maxGain: maxGain, maxLoss: maxLoss)),
+                                  Expanded(child: tile(34, HeatmapTileSize.small)),
                                 ],
                               ),
                             ),
@@ -941,9 +947,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     flex: 3,
                                     child: Row(
                                       children: [
-                                        Expanded(child: _buildHeatmapTile(stock: items[35], size: HeatmapTileSize.small, maxGain: maxGain, maxLoss: maxLoss)),
+                                        Expanded(child: tile(35, HeatmapTileSize.small)),
                                         const SizedBox(width: 2),
-                                        Expanded(child: _buildHeatmapTile(stock: items[36], size: HeatmapTileSize.small, maxGain: maxGain, maxLoss: maxLoss)),
+                                        Expanded(child: tile(36, HeatmapTileSize.small)),
                                       ],
                                     ),
                                   ),
@@ -954,11 +960,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     flex: 2,
                                     child: Row(
                                       children: [
-                                        Expanded(child: _buildHeatmapTile(stock: items[37], size: HeatmapTileSize.mini, maxGain: maxGain, maxLoss: maxLoss)),
+                                        Expanded(child: tile(37, HeatmapTileSize.mini)),
                                         const SizedBox(width: 2),
-                                        Expanded(child: _buildHeatmapTile(stock: items[38], size: HeatmapTileSize.mini, maxGain: maxGain, maxLoss: maxLoss)),
+                                        Expanded(child: tile(38, HeatmapTileSize.mini)),
                                         const SizedBox(width: 2),
-                                        Expanded(child: _buildHeatmapTile(stock: items[39], size: HeatmapTileSize.mini, maxGain: maxGain, maxLoss: maxLoss)),
+                                        Expanded(child: tile(39, HeatmapTileSize.mini)),
                                       ],
                                     ),
                                   ),
@@ -969,15 +975,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     flex: 2,
                                     child: Row(
                                       children: [
-                                        Expanded(child: _buildHeatmapTile(stock: items[40], size: HeatmapTileSize.micro, maxGain: maxGain, maxLoss: maxLoss)),
+                                        Expanded(child: tile(40, HeatmapTileSize.micro)),
                                         const SizedBox(width: 2),
-                                        Expanded(child: _buildHeatmapTile(stock: items[41], size: HeatmapTileSize.micro, maxGain: maxGain, maxLoss: maxLoss)),
+                                        Expanded(child: tile(41, HeatmapTileSize.micro)),
                                         const SizedBox(width: 2),
-                                        Expanded(child: _buildHeatmapTile(stock: items[42], size: HeatmapTileSize.micro, maxGain: maxGain, maxLoss: maxLoss)),
+                                        Expanded(child: tile(42, HeatmapTileSize.micro)),
                                         const SizedBox(width: 2),
-                                        Expanded(child: _buildHeatmapTile(stock: items[43], size: HeatmapTileSize.micro, maxGain: maxGain, maxLoss: maxLoss)),
+                                        Expanded(child: tile(43, HeatmapTileSize.micro)),
                                         const SizedBox(width: 2),
-                                        Expanded(child: _buildHeatmapTile(stock: items[44], size: HeatmapTileSize.micro, maxGain: maxGain, maxLoss: maxLoss)),
+                                        Expanded(child: tile(44, HeatmapTileSize.micro)),
                                       ],
                                     ),
                                   ),
@@ -1001,6 +1007,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   // ── Tekil Isı Haritası Bloğu (Heatmap Tile) ────────────────────────
   Widget _buildHeatmapTile({
     required HeatmapTileItem stock,
+    required int slotIndex,
+    required List<StockModel> allStocks,
     required HeatmapTileSize size,
     double maxGain = 20.0,
     double maxLoss = 20.0,
@@ -1019,6 +1027,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       child: InkWell(
         borderRadius: BorderRadius.zero,
         onTap: () => _onStockTap(stock.symbol),
+        onLongPress: () => _showChangeStockDialog(
+          slotIndex: slotIndex,
+          currentStock: stock,
+          allStocks: allStocks,
+        ),
         child: Container(
           width: double.infinity,
           height: double.infinity,
@@ -1027,6 +1040,43 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           child: _buildTileContent(stock, size),
         ),
       ),
+    );
+  }
+
+  // ── Heatmap Hisse Değiştirme Bottom Sheet (Görsel Tasarımı ile Aynı) ──
+  void _showChangeStockDialog({
+    required int slotIndex,
+    required HeatmapTileItem currentStock,
+    required List<StockModel> allStocks,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (dialogContext) {
+        return _ChangeStockBottomSheet(
+          currentStock: currentStock,
+          allStocks: allStocks,
+          onStockSelected: (newStock) {
+            _saveSlotOverride(slotIndex, newStock.symbol);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  '${newStock.symbol} kutucuğa eklendi',
+                  style: GoogleFonts.inter(color: Colors.white),
+                ),
+                backgroundColor: const Color(0xFF1A1A1C),
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: const BorderSide(color: Color(0xFF2C2C2E), width: 0.5),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -1204,6 +1254,436 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             height: 1.0,
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Heatmap hisse değiştirme bottom sheet'i (Görseldeki modern iOS tarzı kaydırılabilir sheet)
+class _ChangeStockBottomSheet extends StatefulWidget {
+  final HeatmapTileItem currentStock;
+  final List<StockModel> allStocks;
+  final ValueChanged<StockModel> onStockSelected;
+
+  const _ChangeStockBottomSheet({
+    required this.currentStock,
+    required this.allStocks,
+    required this.onStockSelected,
+  });
+
+  @override
+  State<_ChangeStockBottomSheet> createState() => _ChangeStockBottomSheetState();
+}
+
+class _ChangeStockBottomSheetState extends State<_ChangeStockBottomSheet> {
+  late final TextEditingController _searchController;
+  late final DraggableScrollableController _sheetController;
+  String _searchQuery = '';
+  bool _isExpanded = false;
+  double _dragStartY = 0;
+  bool _isSnapping = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+    _sheetController = DraggableScrollableController();
+
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.trim();
+      });
+    });
+
+    _sheetController.addListener(() {
+      if (!_sheetController.isAttached) return;
+      final isExp = _sheetController.size > 0.68;
+      if (isExp != _isExpanded) {
+        setState(() {
+          _isExpanded = isExp;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _sheetController.dispose();
+    super.dispose();
+  }
+
+  List<StockModel> _getFilteredStocks() {
+    if (_searchQuery.isEmpty) {
+      return widget.allStocks;
+    }
+    final q = _searchQuery.toUpperCase();
+    return widget.allStocks.where((s) {
+      final symMatch = s.symbol.toUpperCase().contains(q);
+      final nameMatch = s.companyName.toUpperCase().contains(q);
+      return symMatch || nameMatch;
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredList = _getFilteredStocks();
+
+    return NotificationListener<DraggableScrollableNotification>(
+      onNotification: (notification) {
+        final isExp = notification.extent > 0.68;
+        if (isExp != _isExpanded) {
+          setState(() {
+            _isExpanded = isExp;
+          });
+        }
+        return false;
+      },
+      child: DraggableScrollableSheet(
+        controller: _sheetController,
+        initialChildSize: 0.52,
+        minChildSize: 0.40,
+        maxChildSize: 0.92, // Ekranı tamamen kaplamaz, üstte son kullanıcının sheet'te olduğunu gösteren boşluk kalır
+        snap: true,
+        snapSizes: const [0.52, 0.92],
+        snapAnimationDuration: const Duration(milliseconds: 260),
+        expand: false,
+        builder: (context, sheetScrollController) {
+          return Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFF1A1A1C),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border(
+                top: BorderSide(color: Color(0xFF2C2C2E), width: 0.5),
+                left: BorderSide(color: Color(0xFF2C2C2E), width: 0.5),
+                right: BorderSide(color: Color(0xFF2C2C2E), width: 0.5),
+              ),
+            ),
+            child: Column(
+              children: [
+                // ── Görseldeki Tüm Üst Alan: Tutamaç, Başlık, Alt Başlık, Arama Çubuğu ──
+                SingleChildScrollView(
+                  controller: sheetScrollController,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Container(
+                    width: double.infinity,
+                    color: Colors.transparent,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Başlık ve Tutamaç Alanı (Hassas Snap Algılayıcı ve Tıkla-Aç Desteği)
+                        Listener(
+                          behavior: HitTestBehavior.translucent,
+                          onPointerDown: (event) {
+                            _dragStartY = event.position.dy;
+                            _isSnapping = false;
+                          },
+                          onPointerMove: (event) {
+                            if (_isSnapping || !_sheetController.isAttached) return;
+                            final delta = event.position.dy - _dragStartY;
+
+                            // Yukarı doğru biraz bile (8px) kaydırılsa anında en üst limite (0.92) fırla
+                            if (!_isExpanded && delta < -8) {
+                              _isSnapping = true;
+                              _sheetController.animateTo(
+                                0.92,
+                                duration: const Duration(milliseconds: 280),
+                                curve: Curves.easeOutCubic,
+                              );
+                            }
+                            // En üstteyken aşağı doğru biraz bile (8px) kaydırılsa anında 0.52'ye in
+                            else if (_isExpanded && delta > 8) {
+                              _isSnapping = true;
+                              _sheetController.animateTo(
+                                0.52,
+                                duration: const Duration(milliseconds: 280),
+                                curve: Curves.easeOutCubic,
+                              );
+                            }
+                            // Yarım boyuttayken aşağı doğru 25px çekilirse pencereyi kapat
+                            else if (!_isExpanded && delta > 25) {
+                              _isSnapping = true;
+                              Navigator.of(context).pop();
+                            }
+                          },
+                          onPointerUp: (_) => _isSnapping = false,
+                          onPointerCancel: (_) => _isSnapping = false,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.translucent,
+                            onTap: () {
+                              if (!_sheetController.isAttached) return;
+                              _sheetController.animateTo(
+                                _isExpanded ? 0.52 : 0.92,
+                                duration: const Duration(milliseconds: 280),
+                                curve: Curves.easeOutCubic,
+                              );
+                            },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Tutamaç çubuğu (Drag indicator)
+                                Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(top: 10, bottom: 6),
+                                    child: Container(
+                                      width: 38,
+                                      height: 4.5,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF3F3F46),
+                                        borderRadius: BorderRadius.circular(2.5),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                // ── Üst Başlık & Sağ Üst Çarpı (X) Butonu ──
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(20, 6, 16, 10),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // Ana Başlık Satırı: "Hisseyi Değiştir" ve sağ karşısında aynı seviyedeki "X" butonu
+                                      Row(
+                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              'Hisseyi Değiştir',
+                                              style: GoogleFonts.inter(
+                                                color: Colors.white,
+                                                fontSize: 24, // Büyütüldü (20px -> 24px)
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: -0.5,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          // Çarpı (X) butonu: Ana başlıkla aynı seviyede hizalı
+                                          AnimatedOpacity(
+                                            opacity: _isExpanded ? 1.0 : 0.0,
+                                            duration: const Duration(milliseconds: 200),
+                                            child: IgnorePointer(
+                                              ignoring: !_isExpanded,
+                                              child: Material(
+                                                color: const Color(0xFF242426),
+                                                shape: const CircleBorder(),
+                                                child: InkWell(
+                                                  customBorder: const CircleBorder(),
+                                                  onTap: () => Navigator.of(context).pop(),
+                                                  child: const Padding(
+                                                    padding: EdgeInsets.all(8),
+                                                    child: Icon(
+                                                      Icons.close_rounded,
+                                                      color: Colors.white,
+                                                      size: 20,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 3),
+                                      // Alt Başlık (Doğrudan ana başlığın altında, X butonunu aşağı çekmez)
+                                      Text(
+                                        widget.currentStock.isEmpty
+                                            ? 'Henüz hisse eklenmedi'
+                                            : '${widget.currentStock.symbol} — ${widget.currentStock.companyName}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: GoogleFonts.inter(
+                                          color: const Color(0xFF8E8E93),
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // ── Arama Çubuğu: Yalnızca yukarı kaydırıldığında görünür ──
+                        AnimatedCrossFade(
+                          firstChild: const SizedBox(width: double.infinity, height: 0),
+                          secondChild: Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 2, 20, 10),
+                            child: Container(
+                              height: 46,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF111111),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xFF2C2C2E), width: 0.5),
+                              ),
+                              child: Row(
+                                children: [
+                                  const SizedBox(width: 12),
+                                  const Icon(
+                                    Icons.search_rounded,
+                                    color: Color(0xFF8E8E93),
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _searchController,
+                                      style: GoogleFonts.inter(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                      ),
+                                      decoration: InputDecoration(
+                                        border: InputBorder.none,
+                                        isDense: true,
+                                        hintText: 'Hisse veya şirket adı ara...',
+                                        hintStyle: GoogleFonts.inter(
+                                          color: const Color(0xFF48484A),
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  if (_searchQuery.isNotEmpty)
+                                    IconButton(
+                                      icon: const Icon(Icons.close_rounded, color: Color(0xFF8E8E93), size: 18),
+                                      onPressed: () => _searchController.clear(),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          crossFadeState: _isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                          duration: const Duration(milliseconds: 250),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 2),
+
+                // ── Hisseler Listesi (Aşağı yukarı serbestçe kaydırılabilir) ──
+                Expanded(
+                  child: filteredList.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 30),
+                            child: Text(
+                              'Hisse bulunamadı',
+                              style: GoogleFonts.inter(
+                                color: const Color(0xFF8E8E93),
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                          itemCount: filteredList.length,
+                          separatorBuilder: (_, _) => const Divider(
+                            color: Color(0xFF2C2C2E),
+                            height: 1,
+                          ),
+                          itemBuilder: (context, index) {
+                            final stock = filteredList[index];
+
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () {
+                                // Hisseye tıklandığında işlem gerçekleşir ve pencere kapanır
+                                widget.onStockSelected(stock);
+                                Navigator.of(context).pop();
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                child: Row(
+                                  children: [
+                                    // Hisse ikonu / rozeti
+                                    Container(
+                                      width: 36,
+                                      height: 36,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF242426),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: const Color(0xFF333336),
+                                          width: 0.5,
+                                        ),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        stock.symbol.isNotEmpty ? stock.symbol[0] : '?',
+                                        style: GoogleFonts.inter(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            stock.symbol,
+                                            style: GoogleFonts.inter(
+                                              color: Colors.white,
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            stock.companyName,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.inter(
+                                              color: const Color(0xFF8E8E93),
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          '${stock.currentPrice.toStringAsFixed(2).replaceAll('.', ',')} TL',
+                                          style: GoogleFonts.inter(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        PercentageBadge(
+                                          percent: stock.changePercent,
+                                          isGain: stock.isGain,
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+
+                // Alt güvenli alan (Butonlar silindi, liste alt boşluğu)
+                const SafeArea(
+                  top: false,
+                  child: SizedBox(height: 8),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
