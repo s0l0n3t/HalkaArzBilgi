@@ -21,6 +21,22 @@ class PortfolioScreen extends ConsumerStatefulWidget {
   ConsumerState<PortfolioScreen> createState() => _PortfolioScreenState();
 }
 
+class _ChartSliceData {
+  final String label;
+  final String? symbol;
+  final double value;
+  final double percent;
+  final Color color;
+
+  const _ChartSliceData({
+    required this.label,
+    required this.value,
+    required this.percent,
+    required this.color,
+    this.symbol,
+  });
+}
+
 class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
   bool _isSelectionMode = false;
   final Set<String> _selectedSymbols = {};
@@ -34,8 +50,96 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
     Color(0xFFFF007F), // Neon Pembe / Magenta
     Color(0xFF2979FF), // Kraliyet Kobalt Mavisi
     Color(0xFFFF9100), // Parlak Turuncu
-    Color(0xFF1DE9B6), // Canlı Nane / Turkuaz
   ];
+  static const Color _othersColor = Color(0xFF71717A); // Nötr şık gri (Diğerleri)
+
+  /// Portföydeki en büyük 8 hisseyi bağımsız, kalanları ise "Diğerleri" dilimi olarak gruplar
+  List<_ChartSliceData> _getChartSlices(
+    List<UserPortfolioStats> entries,
+    double totalValue,
+  ) {
+    if (entries.isEmpty || totalValue <= 0) return [];
+
+    // Hisseleri maddi değerine (totalValue) göre büyükten küçüğe sırala
+    final sortedEntries = List<UserPortfolioStats>.from(entries)
+      ..sort((a, b) => b.totalValue.compareTo(a.totalValue));
+
+    // 8 veya daha az hisse varsa her biri kendi rengiyle ayrı dilim olur
+    if (sortedEntries.length <= 8) {
+      return sortedEntries.asMap().entries.map((entry) {
+        final index = entry.key;
+        final item = entry.value;
+        final color = _sliceColors[index % _sliceColors.length];
+        final percent = (item.totalValue / totalValue) * 100;
+        return _ChartSliceData(
+          label: item.entry.symbol,
+          symbol: item.entry.symbol,
+          value: item.totalValue,
+          percent: percent,
+          color: color,
+        );
+      }).toList();
+    }
+
+    // 8'den fazla hisse varsa: En büyük ilk 8 hisse ayrı dilim olur
+    final top8 = sortedEntries.take(8).toList();
+    final remaining = sortedEntries.skip(8).toList();
+
+    final slices = top8.asMap().entries.map((entry) {
+      final index = entry.key;
+      final item = entry.value;
+      final color = _sliceColors[index % _sliceColors.length];
+      final percent = (item.totalValue / totalValue) * 100;
+      return _ChartSliceData(
+        label: item.entry.symbol,
+        symbol: item.entry.symbol,
+        value: item.totalValue,
+        percent: percent,
+        color: color,
+      );
+    }).toList();
+
+    // Kalan tüm hisseler toplanarak 9. ve son dilim olan "Diğerleri" dilimi oluşturulur
+    final othersValue = remaining.fold<double>(0.0, (sum, e) => sum + e.totalValue);
+    final othersPercent = (othersValue / totalValue) * 100;
+
+    slices.add(
+      _ChartSliceData(
+        label: 'Diğerleri',
+        symbol: null,
+        value: othersValue,
+        percent: othersPercent,
+        color: _othersColor,
+      ),
+    );
+
+    return slices;
+  }
+
+  /// Tablo için hisse renk eşlemesi: İlk 8 hisse kendi rengini alır, kalanlar Diğerleri rengini (#71717A) alır
+  Map<String, Color> _getStockColorMap(List<UserPortfolioStats> entries) {
+    if (entries.length <= 8) {
+      final map = <String, Color>{};
+      for (int i = 0; i < entries.length; i++) {
+        map[entries[i].entry.symbol] = _sliceColors[i % _sliceColors.length];
+      }
+      return map;
+    }
+
+    final sortedEntries = List<UserPortfolioStats>.from(entries)
+      ..sort((a, b) => b.totalValue.compareTo(a.totalValue));
+
+    final map = <String, Color>{};
+    for (int i = 0; i < sortedEntries.length; i++) {
+      final symbol = sortedEntries[i].entry.symbol;
+      if (i < 8) {
+        map[symbol] = _sliceColors[i % _sliceColors.length];
+      } else {
+        map[symbol] = _othersColor;
+      }
+    }
+    return map;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -188,6 +292,8 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
     required double gainLossPercent,
     required bool isGain,
   }) {
+    final chartSlices = _getChartSlices(entries, totalValue);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -220,17 +326,14 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                     // 1. Katman: İçteki açık/saydam derinlik halkası
                     PieChart(
                       PieChartData(
-                        sectionsSpace: entries.length > 1 ? 3.5 : 0,
+                        sectionsSpace: chartSlices.length > 1 ? 3.5 : 0,
                         centerSpaceRadius: innerCenterSpaceRadius,
                         startDegreeOffset: -90,
-                        sections: entries.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final item = entry.value;
-                          final color = _sliceColors[index % _sliceColors.length];
-                          final value = item.totalValue > 0 ? item.totalValue : 1.0;
+                        sections: chartSlices.map((slice) {
+                          final value = slice.value > 0 ? slice.value : 1.0;
 
                           return PieChartSectionData(
-                            color: color.withValues(alpha: 0.25),
+                            color: slice.color.withValues(alpha: 0.25),
                             value: value,
                             title: '',
                             radius: innerGlowRadius,
@@ -241,17 +344,14 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                     // 2. Katman: Dıştaki ana canlı renkli halka
                     PieChart(
                       PieChartData(
-                        sectionsSpace: entries.length > 1 ? 3.5 : 0,
+                        sectionsSpace: chartSlices.length > 1 ? 3.5 : 0,
                         centerSpaceRadius: centerSpaceRadius,
                         startDegreeOffset: -90,
-                        sections: entries.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final item = entry.value;
-                          final color = _sliceColors[index % _sliceColors.length];
-                          final value = item.totalValue > 0 ? item.totalValue : 1.0;
+                        sections: chartSlices.map((slice) {
+                          final value = slice.value > 0 ? slice.value : 1.0;
 
                           return PieChartSectionData(
-                            color: color,
+                            color: slice.color,
                             value: value,
                             title: '',
                             radius: mainRingRadius,
@@ -316,17 +416,12 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
               const Divider(color: AppColors.border, height: 1),
               const SizedBox(height: 16),
 
-              // Legend: Her hissenin kare rengi, adı ve portföy yüzdesi (parantez içinde)
+              // Legend: En büyük 8 hisse ve varsa 9. "Diğerleri" dilimi
               Wrap(
                 spacing: 16,
                 runSpacing: 10,
                 alignment: WrapAlignment.center,
-                children: entries.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final item = entry.value;
-                  final color = _sliceColors[index % _sliceColors.length];
-                  final percent = totalValue > 0 ? (item.totalValue / totalValue) * 100 : 0.0;
-
+                children: chartSlices.map((slice) {
                   return Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -334,13 +429,13 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                         width: 11,
                         height: 11,
                         decoration: BoxDecoration(
-                          color: color,
+                          color: slice.color,
                           borderRadius: BorderRadius.circular(2.5),
                         ),
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        item.entry.symbol,
+                        slice.label,
                         style: GoogleFonts.inter(
                           color: Colors.white,
                           fontSize: 14,
@@ -349,7 +444,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '(%${percent.toStringAsFixed(1).replaceAll('.', ',')})',
+                        '(%${slice.percent.toStringAsFixed(1).replaceAll('.', ',')})',
                         style: GoogleFonts.inter(
                           color: AppColors.textSecondary,
                           fontSize: 13,
@@ -372,6 +467,8 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
     List<UserPortfolioStats> entries,
     double totalValue,
   ) {
+    final colorMap = _getStockColorMap(entries);
+
     return Column(
       children: [
         // Tablo Başlık Satırı
@@ -470,7 +567,7 @@ class _PortfolioScreenState extends ConsumerState<PortfolioScreen> {
             ),
             itemBuilder: (context, index) {
               final item = entries[index];
-              final color = _sliceColors[index % _sliceColors.length];
+              final color = colorMap[item.entry.symbol] ?? _othersColor;
               final isGain = item.isGain;
               final gainColor = isGain ? AppColors.primaryGreen : AppColors.lossRed;
               final isSelected = _selectedSymbols.contains(item.entry.symbol);
