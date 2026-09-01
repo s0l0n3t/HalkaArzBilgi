@@ -67,22 +67,36 @@ class _NotificationSettingsScreenState
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: false,
-        title: Text(
-          'Bildirim Ayarları',
-          style: GoogleFonts.inter(
-            color: Colors.white,
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            letterSpacing: -0.5,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── 1. Başlık: "Bildirim Ayarları" (Haberler ve Hisse Senetleri ile birebir aynı) ──
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 14),
+                child: Text(
+                  'Bildirim Ayarları',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
+
+              // ── 2. Sayfa İçeriği ──
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _buildBody(context, settings, notifier, allStocksAsync, isLoggedIn),
+              ),
+            ],
           ),
         ),
       ),
-      body: _buildBody(context, settings, notifier, allStocksAsync, isLoggedIn),
     );
   }
 
@@ -93,14 +107,11 @@ class _NotificationSettingsScreenState
     AsyncValue<List<StockModel>> allStocksAsync,
     bool isLoggedIn,
   ) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1. Master Switch Card
-          _buildMasterSwitchCard(settings, notifier, isLoggedIn),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 1. Master Switch Card
+        _buildMasterSwitchCard(settings, notifier, isLoggedIn),
 
           // 2. Animated Collapsible Lower Section (Yukarıdan aşağıya akordiyon)
           AccordionSection(
@@ -231,8 +242,7 @@ class _NotificationSettingsScreenState
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 
   Widget _buildMasterSwitchCard(

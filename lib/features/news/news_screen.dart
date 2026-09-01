@@ -83,7 +83,7 @@ class _NewsScreenState extends ConsumerState<NewsScreen> {
                 'Haberler',
                 style: GoogleFonts.inter(
                   color: Colors.white,
-                  fontSize: 30,
+                  fontSize: 28,
                   fontWeight: FontWeight.bold,
                   letterSpacing: -0.5,
                 ),
