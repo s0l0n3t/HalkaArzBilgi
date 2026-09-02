@@ -312,31 +312,31 @@ class MockChartDataService {
     return null;
   }
 
-  /// Yıllık: Her ayın başında ay adı
+  /// Yıllık: Her 3 ayda bir çeyreklik etiket (Oca, Nis, Tem, Eki) — tam 4 ferah etiket
   String? _getYearLabel(int index, List<ChartDataPoint> dataPoints) {
     if (index >= dataPoints.length) return null;
+    final currentMonth = dataPoints[index].time.month;
+    // Sadece çeyrek başı aylar: 1 (Ocak), 4 (Nisan), 7 (Temmuz), 10 (Ekim)
+    if (currentMonth % 3 != 1) return null;
+
     if (index == 0) {
-      return _shortMonthName(dataPoints[0].time.month);
+      return _shortMonthName(currentMonth);
     }
-    if (index > 0 &&
-        dataPoints[index].time.month != dataPoints[index - 1].time.month) {
-      return _shortMonthName(dataPoints[index].time.month);
+    if (index > 0 && dataPoints[index - 1].time.month != currentMonth) {
+      return _shortMonthName(currentMonth);
     }
     return null;
   }
 
-  /// Hepsi: Her 3 ayda bir etiket
+  /// Hepsi: Yalnızca yıl geçişlerinde yıl etiketi (2024, 2025, 2026) — ferah ve okunaklı
   String? _getAllLabel(int index, List<ChartDataPoint> dataPoints) {
     if (index >= dataPoints.length) return null;
+    final currentYear = dataPoints[index].time.year;
     if (index == 0) {
-      final dt = dataPoints[0].time;
-      return '${_shortMonthName(dt.month)} ${dt.year.toString().substring(2)}';
+      return currentYear.toString();
     }
-    if (index > 0 &&
-        dataPoints[index].time.month != dataPoints[index - 1].time.month &&
-        dataPoints[index].time.month % 3 == 1) {
-      final dt = dataPoints[index].time;
-      return '${_shortMonthName(dt.month)} ${dt.year.toString().substring(2)}';
+    if (index > 0 && dataPoints[index - 1].time.year != currentYear) {
+      return currentYear.toString();
     }
     return null;
   }

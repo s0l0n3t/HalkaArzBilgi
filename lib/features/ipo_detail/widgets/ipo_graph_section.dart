@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,6 +7,20 @@ import 'package:halkaarzbilgi/core/widgets/percentage_badge.dart';
 import 'package:halkaarzbilgi/features/ipo_detail/models/chart_data_model.dart';
 import 'package:halkaarzbilgi/features/ipo_detail/services/chart_data_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+class _ChartScaleConfig {
+  final double minY;
+  final double maxY;
+  final double step;
+  final double? referenceLine;
+
+  const _ChartScaleConfig({
+    required this.minY,
+    required this.maxY,
+    required this.step,
+    this.referenceLine,
+  });
+}
 
 class IpoGraphSection extends StatefulWidget {
   final IpoModel ipo;
@@ -52,6 +67,46 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
     return _chartDataCache[_selectedPeriod]!;
   }
 
+  /// O(1) deterministik matematiksel formülle:
+  /// - Günlük hariç tüm periyotlarda tam 6 fiyat skalası (5 eşit aralık)
+  /// - Günlük periyotta ise 4 fiyat skalası ve referans çizgisi hesaplar
+  _ChartScaleConfig _calculateScaleConfig(ChartData chartData, bool isDay) {
+    if (isDay) {
+      final double open = chartData.openPrice;
+      final double minP = min(chartData.minPrice, open);
+      final double maxP = max(chartData.maxPrice, open);
+      final double range = maxP - minP;
+
+      final double step = range > 0 ? range / 2.0 : (maxP > 0 ? maxP * 0.05 : 1.0);
+      final int k = (minP / step).floor();
+      final double minY = k * step;
+      final double maxY = minY + 3.0 * step;
+
+      return _ChartScaleConfig(
+        minY: minY,
+        maxY: maxY,
+        step: step,
+        referenceLine: open,
+      );
+    } else {
+      final double minP = chartData.minPrice;
+      final double maxP = chartData.maxPrice;
+      final double range = maxP - minP;
+
+      // 5 eşit aralık -> tam 6 seviye oluşturacak kesin O(1) formül
+      final double step = range > 0 ? range / 3.8 : (maxP > 0 ? maxP * 0.05 : 1.0);
+      final int k = (minP / step).floor();
+      final double minY = k * step;
+      final double maxY = minY + 5.0 * step;
+
+      return _ChartScaleConfig(
+        minY: minY,
+        maxY: maxY,
+        step: step,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final chartData = _getChartData();
@@ -62,17 +117,8 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
     final Color chartColor =
         isGain ? const Color(0xFF23A983) : const Color(0xFFFF3B30);
 
-    // Y ekseni dinamik aralık (padding ile)
-    final double priceRange = chartData.maxPrice - chartData.minPrice;
-    final double yPadding = priceRange * 0.15;
-    final double minY = chartData.minPrice - yPadding;
-    final double maxY = chartData.maxPrice + yPadding;
-
-    // Sağ eksen için fiyat seviyeleri hesapla (3 seviye)
-    final double yStep = priceRange / 3;
-    final double level1 = chartData.minPrice + yStep * 0.5;
-    final double level2 = chartData.minPrice + yStep * 1.5;
-    final double level3 = chartData.minPrice + yStep * 2.5;
+    final bool isDay = _chartPeriods[_selectedPeriod] == ChartPeriod.day;
+    final scaleConfig = _calculateScaleConfig(chartData, isDay);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,10 +153,10 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
           ],
         ),
         const SizedBox(height: 12),
-        // Dinamik Grafik
+        // Dinamik Grafik (Yahoo Finance tarzı ferah ve 6 fiyat skalalı)
         Container(
-          height: 180,
-          padding: const EdgeInsets.only(top: 16, right: 8),
+          height: 205,
+          padding: const EdgeInsets.only(top: 16, right: 8, bottom: 6),
           decoration: BoxDecoration(
             color: const Color(0xFF111111),
             borderRadius: BorderRadius.circular(12),
@@ -121,22 +167,24 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
                 show: true,
                 drawVerticalLine: false,
                 drawHorizontalLine: true,
-                horizontalInterval: 1,
+                horizontalInterval: scaleConfig.step,
                 getDrawingHorizontalLine: (value) {
-                  // Açılış fiyatı referans çizgisi (kesikli)
-                  final diff = (value - chartData.openPrice).abs();
-                  if (diff < yStep * 0.05) {
-                    return const FlLine(
-                      color: Color(0xFF555555),
-                      strokeWidth: 1,
-                      dashArray: [4, 4],
-                    );
-                  }
                   return const FlLine(
-                    color: Colors.transparent,
-                    strokeWidth: 0,
+                    color: Color(0xFF222224),
+                    strokeWidth: 0.8,
                   );
                 },
+              ),
+              extraLinesData: ExtraLinesData(
+                horizontalLines: [
+                  if (isDay && scaleConfig.referenceLine != null)
+                    HorizontalLine(
+                      y: scaleConfig.referenceLine!,
+                      color: const Color(0xFF8E8E93),
+                      strokeWidth: 1.0,
+                      dashArray: [4, 4],
+                    ),
+                ],
               ),
               titlesData: FlTitlesData(
                 show: true,
@@ -150,7 +198,7 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    reservedSize: 22,
+                    reservedSize: 26,
                     interval: 1,
                     getTitlesWidget: (value, meta) {
                       final index = value.toInt();
@@ -165,8 +213,9 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
                           child: Text(
                             label,
                             style: GoogleFonts.inter(
-                              color: const Color(0xFF666666),
-                              fontSize: 10,
+                              color: const Color(0xFF8E8E93),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         );
@@ -175,41 +224,24 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
                     },
                   ),
                 ),
-                // Sağ tarafta dinamik fiyat seviyeleri
+                // Sağ tarafta dinamik fiyat seviyeleri (Görsel 3'teki gibi tam 6 fiyat skalası)
                 rightTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    reservedSize: 42,
-                    interval: 1,
+                    reservedSize: 54,
+                    interval: scaleConfig.step,
                     getTitlesWidget: (value, meta) {
-                      // 3 dinamik fiyat seviyesi göster
-                      final diff1 = (value - level1).abs();
-                      final diff2 = (value - level2).abs();
-                      final diff3 = (value - level3).abs();
-                      final threshold = yStep * 0.08;
-
-                      String? label;
-                      if (diff1 < threshold) {
-                        label = level1.toStringAsFixed(1);
-                      } else if (diff2 < threshold) {
-                        label = level2.toStringAsFixed(1);
-                      } else if (diff3 < threshold) {
-                        label = level3.toStringAsFixed(1);
-                      }
-
-                      if (label != null) {
-                        return Padding(
-                          padding: const EdgeInsets.only(left: 6.0),
-                          child: Text(
-                            label,
-                            style: GoogleFonts.inter(
-                              color: const Color(0xFF666666),
-                              fontSize: 11,
-                            ),
+                      return Padding(
+                        padding: const EdgeInsets.only(left: 6.0),
+                        child: Text(
+                          value.toStringAsFixed(2).replaceAll('.', ','),
+                          style: GoogleFonts.inter(
+                            color: const Color(0xFF8E8E93),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
                           ),
-                        );
-                      }
-                      return const SizedBox.shrink();
+                        ),
+                      );
                     },
                   ),
                 ),
@@ -217,8 +249,8 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
               borderData: FlBorderData(show: false),
               minX: 0,
               maxX: (spots.length - 1).toDouble(),
-              minY: minY,
-              maxY: maxY,
+              minY: scaleConfig.minY,
+              maxY: scaleConfig.maxY,
               lineTouchData: LineTouchData(
                 enabled: true,
                 touchTooltipData: LineTouchTooltipData(
