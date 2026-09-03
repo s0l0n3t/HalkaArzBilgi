@@ -54,13 +54,15 @@ class IpoDetailScreen extends ConsumerWidget {
           ),
         ),
         centerTitle: true,
-        actions: (isLoggedIn && ipo.isTraded)
+        actions: isLoggedIn
             ? [
-                // Alert button — synced with notificationSettingsProvider
+                // Alert button — synced with notificationSettingsProvider (tüm hisseler)
                 IpoAlertButton(symbol: ipo.symbol, size: 24),
-                const SizedBox(width: 4),
-                // Watchlist (add/remove) button
-                IpoWatchlistButton(symbol: ipo.symbol, size: 24),
+                if (ipo.isTraded) ...[
+                  const SizedBox(width: 4),
+                  // Watchlist (add/remove) button — yalnızca işlem gören hisseler
+                  IpoWatchlistButton(symbol: ipo.symbol, size: 24),
+                ],
                 const SizedBox(width: 8),
               ]
             : null,

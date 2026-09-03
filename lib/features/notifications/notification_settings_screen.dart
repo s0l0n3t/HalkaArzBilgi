@@ -9,6 +9,7 @@ import 'package:halkaarzbilgi/core/providers/notification_settings_provider.dart
 import 'package:halkaarzbilgi/core/theme/app_colors.dart';
 import 'package:halkaarzbilgi/core/widgets/auth_bottom_sheet.dart';
 import 'package:halkaarzbilgi/core/widgets/notification_permission_bottom_sheet.dart';
+import 'package:halkaarzbilgi/features/home/models/ipo_model.dart';
 import 'package:halkaarzbilgi/features/home/models/stock_model.dart';
 import 'package:halkaarzbilgi/features/notifications/widgets/notification_settings_skeleton.dart';
 
@@ -178,7 +179,29 @@ class _NotificationSettingsScreenState
                             ),
                           ),
                           data: (stocks) {
-                            final filteredStocks = stocks.where((stock) {
+                            // 1. Yeni (borsaya henüz çıkmamış / işlem görmemiş) halka arzlar
+                            final upcomingStocks = IpoModel.mockIpos.map((ipo) => StockModel(
+                              id: 'upcoming_${ipo.symbol}',
+                              symbol: ipo.symbol,
+                              companyName: ipo.companyName,
+                              currentPrice: ipo.price,
+                              change: 0.0,
+                              changePercent: 0.0,
+                              logoUrl: ipo.logoUrl,
+                            )).toList();
+
+                            // 2. Yalnızca tavan serisi devam eden hisseler (tavanSeriCompleted < tavanSeriDays ve tavanSeriDays > 0)
+                            final ongoingTradedStocks = stocks.where((stock) {
+                              final total = stock.tavanSeriDays ?? 0;
+                              final completed = stock.tavanSeriCompleted ?? 0;
+                              return total > 0 && completed < total;
+                            }).toList();
+
+                            // 3. Sıralama: Yeni hisseler en üstte, devam eden tavan serisi hisseleri hemen altında
+                            final combinedStocks = [...upcomingStocks, ...ongoingTradedStocks];
+
+                            // 4. Arama filtresi uygula
+                            final filteredStocks = combinedStocks.where((stock) {
                               if (_searchQuery.isEmpty) return true;
                               return stock.symbol.toLowerCase().contains(_searchQuery) ||
                                   stock.companyName.toLowerCase().contains(_searchQuery);
@@ -605,6 +628,12 @@ class _NotificationSettingsScreenState
       'KOZAL': (const Color(0xFFFFD700), const Color(0xFF000000), 'K'),
       'PETKM': (const Color(0xFFFFFFFF), const Color(0xFFD62828), 'P'),
       'AKBNK': (const Color(0xFFED1C24), const Color(0xFFFFFFFF), 'AK'),
+      'TABGD': (const Color(0xFFFFFFFF), const Color(0xFFE21A22), 'TAB'),
+      'EBEBK': (const Color(0xFFFFFFFF), const Color(0xFFFF8200), 'E'),
+      'MEKAG': (const Color(0xFFFFFFFF), const Color(0xFF005A9C), 'M'),
+      'GZNMI': (const Color(0xFFFFFFFF), const Color(0xFF0083CA), 'G'),
+      'KLYEN': (const Color(0xFFFFFFFF), const Color(0xFF00B2A9), 'K'),
+      'BORSK': (const Color(0xFFFFFFFF), const Color(0xFF003865), 'B'),
     };
 
     final style = logoStyles[symbol] ??

@@ -59,8 +59,8 @@ class StockModel {
       currentPrice: 65.50,
       change: -11.83,
       changePercent: -15.33,
-      tavanSeriDays: 3,
-      tavanSeriCompleted: 2,
+      tavanSeriDays: 8,
+      tavanSeriCompleted: 5,
     ),
     StockModel(
       id: '2',
@@ -69,8 +69,8 @@ class StockModel {
       currentPrice: 35.50,
       change: -1.26,
       changePercent: -3.45,
-      tavanSeriDays: 5,
-      tavanSeriCompleted: 5,
+      tavanSeriDays: 6,
+      tavanSeriCompleted: 6,
     ),
     StockModel(
       id: '3',
@@ -79,7 +79,7 @@ class StockModel {
       currentPrice: 76.50,
       change: 1.61,
       changePercent: 2.15,
-      tavanSeriDays: 4,
+      tavanSeriDays: 7,
       tavanSeriCompleted: 3,
     ),
     StockModel(
@@ -89,8 +89,8 @@ class StockModel {
       currentPrice: 22.80,
       change: 1.83,
       changePercent: 8.72,
-      tavanSeriDays: 7,
-      tavanSeriCompleted: 7,
+      tavanSeriDays: 0,
+      tavanSeriCompleted: 0,
     ),
     StockModel(
       id: '5',
@@ -99,8 +99,8 @@ class StockModel {
       currentPrice: 48.00,
       change: -6.06,
       changePercent: -11.20,
-      tavanSeriDays: 0,
-      tavanSeriCompleted: 0,
+      tavanSeriDays: 5,
+      tavanSeriCompleted: 2,
     ),
     StockModel(
       id: '6',
@@ -109,8 +109,8 @@ class StockModel {
       currentPrice: 17.40,
       change: 0.90,
       changePercent: 5.44,
-      tavanSeriDays: 3,
-      tavanSeriCompleted: 1,
+      tavanSeriDays: 4,
+      tavanSeriCompleted: 4,
     ),
     StockModel(
       id: '7',
