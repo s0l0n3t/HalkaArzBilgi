@@ -299,6 +299,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void _showFilterSheet() {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -1283,6 +1284,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (dialogContext) {
