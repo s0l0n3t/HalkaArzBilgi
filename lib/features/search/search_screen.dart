@@ -88,15 +88,79 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     } catch (_) {}
   }
 
-  Future<void> _saveSlotOverride(int slotIndex, String symbol) async {
-    setState(() {
-      _slotOverrides[slotIndex] = symbol;
-    });
+  Future<void> _handleStockSelection({
+    required int slotIndex,
+    required HeatmapTileItem currentStock,
+    required StockModel newStock,
+    required List<HeatmapTileItem> allGridItems,
+  }) async {
+    final newSymbol = newStock.symbol;
+
+    // Haritada döngüsel tekrardan dolayı mükerrer hisse var mı kontrol et
+    final validItems = allGridItems.where((i) => !i.isEmpty).toList();
+    final uniqueSymbols = validItems.map((i) => i.symbol).toSet();
+    final hasDuplicates = uniqueSymbols.length < validItems.length;
+
+    String snackBarMessage;
+    if (!hasDuplicates) {
+      // API'den 45+ benzersiz hisse geldiğinde: Takas (Swap) mantığı çalışır
+      int? existingSlot;
+      for (int i = 0; i < allGridItems.length; i++) {
+        if (i != slotIndex && !allGridItems[i].isEmpty && allGridItems[i].symbol == newSymbol) {
+          existingSlot = i;
+          break;
+        }
+      }
+
+      if (existingSlot != null) {
+        final displacedSymbol = currentStock.isEmpty ? '' : currentStock.symbol;
+        setState(() {
+          _slotOverrides[slotIndex] = newSymbol;
+          _slotOverrides[existingSlot!] = displacedSymbol;
+        });
+
+        if (displacedSymbol.isEmpty) {
+          snackBarMessage = '$newSymbol kutucuğa taşındı, eski kutusu boşaltıldı';
+        } else {
+          snackBarMessage = '$newSymbol ile $displacedSymbol yer değiştirdi';
+        }
+      } else {
+        setState(() {
+          _slotOverrides[slotIndex] = newSymbol;
+        });
+        snackBarMessage = '$newSymbol kutucuğa eklendi';
+      }
+    } else {
+      // Döngüsel tekrarda (aynı hisse 2-3 kutuda varken): Doğrudan atama yapılır
+      setState(() {
+        _slotOverrides[slotIndex] = newSymbol;
+      });
+      snackBarMessage = '$newSymbol kutucuğa eklendi';
+    }
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final mapToSave = _slotOverrides.map((key, value) => MapEntry(key.toString(), value));
       await prefs.setString('heatmap_custom_slot_overrides', jsonEncode(mapToSave));
     } catch (_) {}
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            snackBarMessage,
+            style: GoogleFonts.inter(color: Colors.white),
+          ),
+          backgroundColor: const Color(0xFF1A1A1C),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: const BorderSide(color: Color(0xFF2C2C2E), width: 0.5),
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -126,18 +190,25 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ..sort((a, b) => a.changePercent.compareTo(b.changePercent));
     }
 
-    // 3. Apply Search Query
+    // 3. Apply Search Query - Arama yapılıyorsa doğrudan eşleşen listeyi döndür (mozaik 45 kısıtlamasına sokma)
     if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toUpperCase();
-      list = list.where((stock) {
+      return list.where((stock) {
         final symMatch = stock.symbol.toUpperCase().contains(query);
         final nameMatch = stock.companyName.toUpperCase().contains(query);
         return symMatch || nameMatch;
       }).toList();
     }
 
-    // 4. Mozaik katmanlarına (Dev, Orta, Küçük, Mini, Mikro) dengeli ve karışık olarak dağıt
-    return _distributeStocksAcrossGrid(list, 45, rawStocks);
+    // 4. Mozaik katmanlarına dengeli biçimde dağıt.
+    // Filtre 'Tümü' (StockFilter.all) iken kullanıcının özel hisseleri korunur;
+    // Filtre açıkken (Artanlar/Azalanlar) tüm pazar hisseleri filtreye göre kutuları doldurur.
+    return _distributeStocksAcrossGrid(
+      list,
+      45,
+      rawStocks,
+      applyOverrides: _selectedFilter == StockFilter.all,
+    );
   }
 
   /// Aktif hisseleri ve %0 boş blokları mozaikteki tüm katmanlara (Dev, Orta, Küçük, Mini, Mikro)
@@ -145,8 +216,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   List<HeatmapTileItem> _distributeStocksAcrossGrid(
     List<HeatmapTileItem> activeStocks,
     int totalSlots,
-    List<StockModel> rawStocks,
-  ) {
+    List<StockModel> rawStocks, {
+    bool applyOverrides = true,
+  }) {
     if (activeStocks.isEmpty) {
       return List.generate(totalSlots, (_) => HeatmapTileItem.empty());
     }
@@ -181,28 +253,37 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       (_) => HeatmapTileItem.empty(),
     );
 
-    for (int i = 0; i < activeStocks.length && i < slotPriorityOrder.length; i++) {
+    // Eldeki hisseler 45'ten az olsa bile döngüsel olarak (i % activeStocks.length)
+    // tüm kutucukları eksiksiz doldurur. İleride API ile 45+ hisse geldiğinde
+    // her kutucuk benzersiz bir hisse ile dolar.
+    for (int i = 0; i < totalSlots && i < slotPriorityOrder.length; i++) {
       final targetSlot = slotPriorityOrder[i];
       if (targetSlot < totalSlots) {
-        result[targetSlot] = activeStocks[i];
+        result[targetSlot] = activeStocks[i % activeStocks.length];
       }
     }
 
-    // Kullanıcının elle değiştirdiği slotları (overrides) uygula
-    for (final entry in _slotOverrides.entries) {
-      final slot = entry.key;
-      final symbol = entry.value;
-      if (slot >= 0 && slot < totalSlots) {
-        final match = rawStocks.where((s) => s.symbol == symbol).firstOrNull;
-        if (match != null) {
-          result[slot] = HeatmapTileItem(
-            symbol: match.symbol,
-            companyName: match.companyName,
-            changePercent: match.changePercent,
-            size: HeatmapTileSize.medium,
-            isGain: match.isGain,
-            price: match.currentPrice,
-          );
+    // Kullanıcının elle değiştirdiği slotları (overrides) yalnızca filtre 'Tümü' iken uygula
+    if (applyOverrides) {
+      for (final entry in _slotOverrides.entries) {
+        final slot = entry.key;
+        final symbol = entry.value;
+        if (slot >= 0 && slot < totalSlots) {
+          if (symbol.isEmpty) {
+            result[slot] = HeatmapTileItem.empty();
+          } else {
+            final match = rawStocks.where((s) => s.symbol == symbol).firstOrNull;
+            if (match != null) {
+              result[slot] = HeatmapTileItem(
+                symbol: match.symbol,
+                companyName: match.companyName,
+                changePercent: match.changePercent,
+                size: HeatmapTileSize.medium,
+                isGain: match.isGain,
+                price: match.currentPrice,
+              );
+            }
+          }
         }
       }
     }
@@ -374,149 +455,274 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── 1. Başlık & Filtre İkonu: Hisse Senetleri (Aynı Satırda) ──
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 12, 14),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Hisse Senetleri',
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    IconButton(
-                      icon: Stack(
-                        alignment: Alignment.topRight,
-                        children: [
-                          const Icon(
-                            Icons.tune_rounded,
-                            color: Colors.white,
-                            size: 22,
-                          ),
-                          if (_selectedFilter != StockFilter.all)
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(
-                                color: AppColors.primaryGreen,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                        ],
-                      ),
-                      onPressed: _showFilterSheet,
-                    ),
-                  ],
-                ),
-              ),
-
-              // ── 2. Arama Çubuğu (Pill Shape) ──
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Container(
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: AppColors.border,
-                      width: 0.5,
-                    ),
-                  ),
+        child: RefreshIndicator(
+          color: AppColors.primaryGreen,
+          backgroundColor: AppColors.surface,
+          onRefresh: () async {
+            ref.invalidate(allMarketStocksProvider);
+            try {
+              await ref.read(allMarketStocksProvider.future);
+            } catch (_) {}
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── 1. Başlık & Filtre İkonu: Hisse Senetleri (Aynı Satırda) ──
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 12, 14),
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const SizedBox(width: 16),
-                      const Icon(
-                        Icons.search_rounded,
-                        color: AppColors.textSecondary,
-                        size: 22,
+                      Text(
+                        'Hisse Senetleri',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: -0.5,
+                        ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          focusNode: _focusNode,
-                          style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            hintText: 'Hisse veya şirket adı ara...',
-                            hintStyle: GoogleFonts.inter(
-                              color: AppColors.textSecondary,
-                              fontSize: 15,
+                      IconButton(
+                        icon: Stack(
+                          alignment: Alignment.topRight,
+                          children: [
+                            const Icon(
+                              Icons.tune_rounded,
+                              color: Colors.white,
+                              size: 22,
                             ),
-                          ),
+                            if (_selectedFilter != StockFilter.all)
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primaryGreen,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                          ],
                         ),
+                        onPressed: _showFilterSheet,
                       ),
-                      if (_searchQuery.isNotEmpty)
-                        IconButton(
-                          icon: const Icon(
-                            Icons.close_rounded,
-                            color: AppColors.textSecondary,
-                            size: 20,
-                          ),
-                          onPressed: () {
-                            _searchController.clear();
-                            _focusNode.unfocus();
-                          },
-                        ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 15),
 
-              // ── 3. Dinamik İçerik (AsyncValue Yükleme, Hata, Veri Durumları) ──
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                switchInCurve: Curves.easeIn,
-                switchOutCurve: Curves.easeOut,
-                child: asyncStocks.when(
-                  loading: () => SearchScreenSkeleton(
-                    key: const ValueKey('search_loading_skeleton'),
-                    isSearching: isSearching,
-                  ),
-                  error: (err, stack) => Center(
-                    key: const ValueKey('search_error'),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 40),
-                      child: Text(
-                        'Veriler yüklenirken hata oluştu: $err',
-                        style: const TextStyle(color: Colors.red),
-                        textAlign: TextAlign.center,
+                // ── 2. Arama Çubuğu (Pill Shape) ──
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: AppColors.border,
+                        width: 0.5,
                       ),
                     ),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 16),
+                        const Icon(
+                          Icons.search_rounded,
+                          color: AppColors.textSecondary,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            focusNode: _focusNode,
+                            style: GoogleFonts.inter(
+                              color: Colors.white,
+                              fontSize: 16,
+                            ),
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              hintText: 'Hisse veya şirket adı ara...',
+                              hintStyle: GoogleFonts.inter(
+                                color: AppColors.textSecondary,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (_searchQuery.isNotEmpty)
+                          IconButton(
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              color: AppColors.textSecondary,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              _searchController.clear();
+                              _focusNode.unfocus();
+                            },
+                          ),
+                      ],
+                    ),
                   ),
-                  data: (rawStocks) {
-                    final mappedStocks = _getMappedStocks(rawStocks);
-
-                    if (isSearching) {
-                      return KeyedSubtree(
-                        key: const ValueKey('search_list_data'),
-                        child: _buildListView(mappedStocks),
-                      );
-                    }
-                    return KeyedSubtree(
-                      key: const ValueKey('search_heatmap_data'),
-                      child: _buildAdvancedHeatmap(mappedStocks, rawStocks),
-                    );
-                  },
                 ),
-              ),
-            ],
+                const SizedBox(height: 15),
+
+                // ── 3. Dinamik İçerik (AsyncValue Yükleme, Hata, Veri Durumları) ──
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  switchInCurve: Curves.easeIn,
+                  switchOutCurve: Curves.easeOut,
+                  child: asyncStocks.when(
+                    loading: () => SearchScreenSkeleton(
+                      key: const ValueKey('search_loading_skeleton'),
+                      isSearching: isSearching,
+                    ),
+                    error: (err, stack) => Center(
+                      key: const ValueKey('search_error'),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.border, width: 0.5),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 56,
+                              height: 56,
+                              decoration: BoxDecoration(
+                                color: Colors.redAccent.withValues(alpha: 0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.cloud_off_rounded,
+                                color: Colors.redAccent,
+                                size: 28,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Piyasa Verileri Alınamadı',
+                              style: GoogleFonts.inter(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Sunucuya bağlanırken bir hata oluştu. Lütfen bağlantınızı kontrol edip tekrar deneyin.',
+                              style: GoogleFonts.inter(
+                                color: AppColors.textSecondary,
+                                fontSize: 13,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 20),
+                            ElevatedButton.icon(
+                              onPressed: () => ref.invalidate(allMarketStocksProvider),
+                              icon: const Icon(Icons.refresh_rounded, size: 18),
+                              label: Text(
+                                'Tekrar Dene',
+                                style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryGreen,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    data: (rawStocks) {
+                      if (rawStocks.isEmpty) {
+                        return Center(
+                          key: const ValueKey('search_empty_data'),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppColors.border, width: 0.5),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.analytics_outlined,
+                                  color: AppColors.textSecondary,
+                                  size: 48,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Henüz Piyasa Verisi Bulunmuyor',
+                                  style: GoogleFonts.inter(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Piyasa verileri güncellendiğinde burada görüntülenecektir.',
+                                  style: GoogleFonts.inter(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 13,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 20),
+                                ElevatedButton.icon(
+                                  onPressed: () => ref.invalidate(allMarketStocksProvider),
+                                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                                  label: Text(
+                                    'Yenile',
+                                    style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF2C2C2E),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      final mappedStocks = _getMappedStocks(rawStocks);
+
+                      if (isSearching) {
+                        return KeyedSubtree(
+                          key: const ValueKey('search_list_data'),
+                          child: _buildListView(mappedStocks),
+                        );
+                      }
+                      return KeyedSubtree(
+                        key: const ValueKey('search_heatmap_data'),
+                        child: _buildAdvancedHeatmap(mappedStocks, rawStocks),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -693,6 +899,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         stock: items[index],
         slotIndex: index,
         allStocks: rawStocks,
+        allGridItems: items,
         size: size,
         maxGain: maxGain,
         maxLoss: maxLoss,
@@ -1009,6 +1216,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     required HeatmapTileItem stock,
     required int slotIndex,
     required List<StockModel> allStocks,
+    required List<HeatmapTileItem> allGridItems,
     required HeatmapTileSize size,
     double maxGain = 20.0,
     double maxLoss = 20.0,
@@ -1027,11 +1235,34 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       child: InkWell(
         borderRadius: BorderRadius.zero,
         onTap: () => _onStockTap(stock.symbol),
-        onLongPress: () => _showChangeStockDialog(
-          slotIndex: slotIndex,
-          currentStock: stock,
-          allStocks: allStocks,
-        ),
+        onLongPress: () {
+          // Filtre etkinken (Artanlar veya Azalanlar) özel kutucuk değişimi engellenir
+          if (_selectedFilter != StockFilter.all) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Hisse tercihleri değişikliği için filtre kapatılmalı',
+                  style: GoogleFonts.inter(color: Colors.white),
+                ),
+                backgroundColor: const Color(0xFF1A1A1C),
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: const BorderSide(color: Color(0xFF2C2C2E), width: 0.5),
+                ),
+              ),
+            );
+            return;
+          }
+
+          _showChangeStockDialog(
+            slotIndex: slotIndex,
+            currentStock: stock,
+            allStocks: allStocks,
+            allGridItems: allGridItems,
+          );
+        },
         child: Container(
           width: double.infinity,
           height: double.infinity,
@@ -1048,6 +1279,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     required int slotIndex,
     required HeatmapTileItem currentStock,
     required List<StockModel> allStocks,
+    required List<HeatmapTileItem> allGridItems,
   }) {
     showModalBottomSheet(
       context: context,
@@ -1058,21 +1290,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           currentStock: currentStock,
           allStocks: allStocks,
           onStockSelected: (newStock) {
-            _saveSlotOverride(slotIndex, newStock.symbol);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  '${newStock.symbol} kutucuğa eklendi',
-                  style: GoogleFonts.inter(color: Colors.white),
-                ),
-                backgroundColor: const Color(0xFF1A1A1C),
-                behavior: SnackBarBehavior.floating,
-                duration: const Duration(seconds: 2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  side: const BorderSide(color: Color(0xFF2C2C2E), width: 0.5),
-                ),
-              ),
+            _handleStockSelection(
+              slotIndex: slotIndex,
+              currentStock: currentStock,
+              newStock: newStock,
+              allGridItems: allGridItems,
             );
           },
         );
@@ -1082,6 +1304,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   // ── Boyut Kurallarına Göre Blok İçeriği (Görsel Oranları & Tipografi) ─
   Widget _buildTileContent(HeatmapTileItem stock, HeatmapTileSize size) {
+    if (stock.isEmpty) {
+      return const SizedBox.shrink();
+    }
     switch (size) {
       // 1. Büyük Blok (SARAE & ATATR — MSFT / GOOGL Gibi)
       case HeatmapTileSize.large:
