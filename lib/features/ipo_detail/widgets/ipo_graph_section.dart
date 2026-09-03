@@ -107,6 +107,23 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
     }
   }
 
+  /// Fiyat bareminin genişliğini metin uzunluğuna göre dinamik ölçer
+  double _calculatePriceLabelWidth(double maxPrice) {
+    final sampleText = maxPrice.toStringAsFixed(2).replaceAll('.', ',');
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: sampleText,
+        style: GoogleFonts.inter(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      maxLines: 1,
+      textDirection: TextDirection.ltr,
+    )..layout();
+    return textPainter.width;
+  }
+
   @override
   Widget build(BuildContext context) {
     final chartData = _getChartData();
@@ -119,6 +136,10 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
 
     final bool isDay = _chartPeriods[_selectedPeriod] == ChartPeriod.day;
     final scaleConfig = _calculateScaleConfig(chartData, isDay);
+
+    // Fiyat etiketinin genişliğini dinamik hesapla ve saat etiketlerindeki gibi 12px boşluk ekle
+    final labelWidth = _calculatePriceLabelWidth(scaleConfig.maxY);
+    final rightReservedSize = (labelWidth + 12.0).ceilToDouble();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,7 +177,7 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
         // Dinamik Grafik (Yahoo Finance tarzı ferah ve 6 fiyat skalalı)
         Container(
           height: 205,
-          padding: const EdgeInsets.only(top: 16, right: 8, bottom: 6),
+          padding: const EdgeInsets.only(top: 16, right: 0, bottom: 6),
           decoration: BoxDecoration(
             color: const Color(0xFF111111),
             borderRadius: BorderRadius.circular(12),
@@ -224,15 +245,15 @@ class _IpoGraphSectionState extends State<IpoGraphSection> {
                     },
                   ),
                 ),
-                // Sağ tarafta dinamik fiyat seviyeleri (Görsel 3'teki gibi tam 6 fiyat skalası)
+                // Sağ tarafta dinamik fiyat seviyeleri (Sağa yaslı, üst çizgiyle hizalı)
                 rightTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    reservedSize: 54,
+                    reservedSize: rightReservedSize,
                     interval: scaleConfig.step,
                     getTitlesWidget: (value, meta) {
-                      return Padding(
-                        padding: const EdgeInsets.only(left: 6.0),
+                      return Container(
+                        alignment: Alignment.centerRight,
                         child: Text(
                           value.toStringAsFixed(2).replaceAll('.', ','),
                           style: GoogleFonts.inter(
