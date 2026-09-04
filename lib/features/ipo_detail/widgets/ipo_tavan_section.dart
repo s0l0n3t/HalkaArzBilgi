@@ -10,7 +10,7 @@ class IpoTavanSection extends StatelessWidget {
 
   const IpoTavanSection({
     super.key,
-    required this.totalDays,
+    this.totalDays = 0,
     required this.completedDays,
   });
 

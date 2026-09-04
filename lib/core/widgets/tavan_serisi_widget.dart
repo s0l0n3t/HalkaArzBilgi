@@ -11,7 +11,7 @@ class TavanSerisiWidget extends StatefulWidget {
 
   const TavanSerisiWidget({
     super.key,
-    required this.totalDays,
+    this.totalDays = 0,
     required this.completedDays,
   });
 
@@ -25,9 +25,8 @@ class _TavanSerisiWidgetState extends State<TavanSerisiWidget>
   late List<Animation<double>> _fillAnimations;
   late List<Animation<double>> _checkAnimations;
 
-  int get _effectiveDays => widget.totalDays > 0 ? widget.totalDays : 0;
   int get _effectiveCompleted =>
-      widget.completedDays.clamp(0, _effectiveDays);
+      widget.completedDays > 0 ? widget.completedDays : 0;
 
   @override
   void initState() {
@@ -38,10 +37,10 @@ class _TavanSerisiWidgetState extends State<TavanSerisiWidget>
 
   void _buildAnimations() {
     _controllers = List.generate(
-      _effectiveDays,
+      _effectiveCompleted,
       (index) => AnimationController(
         vsync: this,
-        duration: const Duration(milliseconds: 500),
+        duration: const Duration(milliseconds: 400),
       ),
     );
 
@@ -66,9 +65,10 @@ class _TavanSerisiWidgetState extends State<TavanSerisiWidget>
 
   Future<void> _startSequentialAnimation() async {
     for (int i = 0; i < _effectiveCompleted; i++) {
-      await Future.delayed(Duration(milliseconds: i * 250));
-      if (mounted) {
-        _controllers[i].forward();
+      if (!mounted) return;
+      _controllers[i].forward();
+      if (i < _effectiveCompleted - 1) {
+        await Future.delayed(const Duration(milliseconds: 200));
       }
     }
   }
@@ -83,9 +83,8 @@ class _TavanSerisiWidgetState extends State<TavanSerisiWidget>
 
   @override
   Widget build(BuildContext context) {
-    final bool isEnded = widget.totalDays == 0;
-    final String dayLabel =
-        isEnded ? '0 Gün' : '$_effectiveCompleted Gün';
+    final bool hasCompletedDays = _effectiveCompleted > 0;
+    final String dayLabel = '$_effectiveCompleted Gün';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -115,90 +114,87 @@ class _TavanSerisiWidgetState extends State<TavanSerisiWidget>
 
         const SizedBox(height: 14),
 
-        // ── Day circles ────────────────────────────────────────────
-        if (isEnded)
+        // ── Day circles or empty state ─────────────────────────────
+        if (!hasCompletedDays)
           Text(
-            'Tavan serisi sona erdi',
+            'Tavan serisi bulunmuyor veya sona erdi',
             style: GoogleFonts.inter(
               color: const Color(0xFF8E8E93),
-              fontSize: 12,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
             ),
           )
         else
-          Row(
-            children: List.generate(_effectiveDays, (index) {
-              final isCompleted = index < _effectiveCompleted;
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: List.generate(_effectiveCompleted, (index) {
+                return Padding(
+                  padding: EdgeInsets.only(
+                    right: index < _effectiveCompleted - 1 ? 10.0 : 0.0,
+                  ),
+                  child: Column(
+                    children: [
+                      AnimatedBuilder(
+                        animation: _controllers[index],
+                        builder: (context, child) {
+                          final fillVal = _fillAnimations[index].value;
+                          final checkVal = _checkAnimations[index].value;
 
-              return Padding(
-                padding: EdgeInsets.only(
-                  right: index < _effectiveDays - 1 ? 10.0 : 0.0,
-                ),
-                child: Column(
-                  children: [
-                    AnimatedBuilder(
-                      animation: _controllers[index],
-                      builder: (context, child) {
-                        final fillVal =
-                            isCompleted ? _fillAnimations[index].value : 0.0;
-                        final checkVal =
-                            isCompleted ? _checkAnimations[index].value : 0.0;
-
-                        return SizedBox(
-                          width: 30,
-                          height: 30,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              // Background: empty circle (border only) for pending days
-                              Container(
-                                width: 30,
-                                height: 30,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: const Color(0xFF1C1C1E),
-                                  border: Border.all(
-                                    color: isCompleted
-                                        ? const Color(0xFF00B856)
-                                        : const Color(0xFF3A3A3C),
-                                    width: 1.5,
-                                  ),
-                                ),
-                              ),
-                              // Green circle (BoxDecoration gradient + shadow)
-                              if (fillVal > 0.0)
-                                Opacity(
-                                  opacity: fillVal.clamp(0.0, 1.0),
-                                  child: Container(
-                                    width: 30,
-                                    height: 30,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      gradient: const LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [
-                                          Color(0xFF00D462),
-                                          AppColors.primaryGreen,
-                                          Color(0xFF009645),
-                                        ],
-                                      ),
-                                      border: Border.all(
-                                        color: const Color(0xFF3A3A3C),
-                                        width: 1.5,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black
-                                              .withValues(alpha: 0.25),
-                                          blurRadius: 4,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
+                          return SizedBox(
+                            width: 30,
+                            height: 30,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                // Background: circular border
+                                Container(
+                                  width: 30,
+                                  height: 30,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: const Color(0xFF1C1C1E),
+                                    border: Border.all(
+                                      color: const Color(0xFF00B856),
+                                      width: 1.5,
                                     ),
                                   ),
                                 ),
-                              // Checkmark image (checkmark.png)
-                              if (isCompleted)
+                                // Green circle (BoxDecoration gradient + shadow)
+                                if (fillVal > 0.0)
+                                  Opacity(
+                                    opacity: fillVal.clamp(0.0, 1.0),
+                                    child: Container(
+                                      width: 30,
+                                      height: 30,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: const LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [
+                                            Color(0xFF00D462),
+                                            AppColors.primaryGreen,
+                                            Color(0xFF009645),
+                                          ],
+                                        ),
+                                        border: Border.all(
+                                          color: const Color(0xFF3A3A3C),
+                                          width: 1.5,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black
+                                                .withValues(alpha: 0.25),
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                // Checkmark image (checkmark.png)
                                 Transform.scale(
                                   scale: checkVal,
                                   child: Opacity(
@@ -211,28 +207,29 @@ class _TavanSerisiWidgetState extends State<TavanSerisiWidget>
                                     ),
                                   ),
                                 ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${index + 1}',
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFF8E8E93),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                              ],
+                            ),
+                          );
+                        },
                       ),
-                    ),
-                  ],
-                ),
-              );
-            }),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${index + 1}',
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF8E8E93),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ),
           ),
 
         // ── "Günler" label ─────────────────────────────────────────
-        if (!isEnded) ...[
+        if (hasCompletedDays) ...[
           const SizedBox(height: 12),
           Text(
             'Günler',
