@@ -11,6 +11,8 @@ import 'package:halkaarzbilgi/features/notifications/notification_settings_scree
 import 'package:halkaarzbilgi/features/search/search_screen.dart';
 import 'package:halkaarzbilgi/features/stock_detail/stock_detail_screen.dart';
 import 'package:halkaarzbilgi/features/ipo_detail/ipo_detail_screen.dart';
+import 'package:halkaarzbilgi/features/news/models/news_model.dart';
+import 'package:halkaarzbilgi/features/news/news_detail_screen.dart';
 import 'package:halkaarzbilgi/features/portfolio/portfolio_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -51,6 +53,14 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         final symbol = state.pathParameters['symbol']!;
         return IpoDetailScreen(symbol: symbol);
+      },
+    ),
+    GoRoute(
+      path: '/news/:id',
+      builder: (context, state) {
+        final id = state.pathParameters['id']!;
+        final news = state.extra as NewsModel?;
+        return NewsDetailScreen(id: id, news: news);
       },
     ),
     StatefulShellRoute.indexedStack(

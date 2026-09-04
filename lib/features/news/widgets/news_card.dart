@@ -33,9 +33,7 @@ class NewsCard extends StatelessWidget {
             child: InkWell(
               onTap: onTap ??
                   () {
-                    if (news.symbol != null) {
-                      context.push('/ipo/${news.symbol}');
-                    }
+                    context.push('/news/${news.id}', extra: news);
                   },
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 14.0),
@@ -68,34 +66,45 @@ class NewsCard extends StatelessWidget {
                         ),
                         if (news.symbol != null) ...[
                           const SizedBox(width: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  '#',
-                                  style: GoogleFonts.inter(
-                                    color: AppColors.primaryGreen,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              context.push('/ipo/${news.symbol}');
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: AppColors.primaryGreen
+                                      .withValues(alpha: 0.25),
+                                  width: 0.8,
                                 ),
-                                const SizedBox(width: 2),
-                                Text(
-                                  news.symbol!,
-                                  style: GoogleFonts.inter(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '#',
+                                    style: GoogleFonts.inter(
+                                      color: AppColors.primaryGreen,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    news.symbol!,
+                                    style: GoogleFonts.inter(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],
