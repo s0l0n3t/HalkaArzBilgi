@@ -299,11 +299,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void _showFilterSheet() {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             return SafeArea(
@@ -326,6 +327,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     ),
                     const SizedBox(height: 16),
                     _buildFilterOption(
+                      sheetContext: sheetContext,
                       title: 'Tümü',
                       subtitle: 'Tüm hisse senetleri',
                       filter: StockFilter.all,
@@ -333,6 +335,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       setSheetState: setSheetState,
                     ),
                     _buildFilterOption(
+                      sheetContext: sheetContext,
                       title: 'En Çok Artanlar',
                       subtitle: 'Yükselişteki hisseler',
                       filter: StockFilter.topGainers,
@@ -341,6 +344,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       setSheetState: setSheetState,
                     ),
                     _buildFilterOption(
+                      sheetContext: sheetContext,
                       title: 'En Çok Azalanlar',
                       subtitle: 'Düşüşteki hisseler',
                       filter: StockFilter.topLosers,
@@ -359,6 +363,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   Widget _buildFilterOption({
+    required BuildContext sheetContext,
     required String title,
     required String subtitle,
     required StockFilter filter,
@@ -375,7 +380,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           _selectedFilter = filter;
         });
         setSheetState(() {});
-        Navigator.pop(context);
+        Navigator.of(sheetContext).pop();
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
